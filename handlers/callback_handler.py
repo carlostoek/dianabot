@@ -4,7 +4,6 @@ from services.user_service import UserService
 from services.mission_service import MissionService
 from services.game_service import GameService
 from services.auction_service import AuctionService
-from services.shop_service import ShopService
 from utils.lucien_voice import LucienVoice
 from handlers.start_handler import StartHandler
 from typing import Dict, Any
@@ -18,7 +17,6 @@ class CallbackHandler:
         self.mission_service = MissionService()
         self.game_service = GameService()
         self.auction_service = AuctionService()
-        self.shop_service = ShopService()
         self.lucien = LucienVoice()
         self.start_handler = StartHandler()
 

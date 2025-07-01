@@ -1,5 +1,4 @@
-
-    from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from services.user_service import UserService
 from services.mission_service import MissionService

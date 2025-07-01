@@ -1,5 +1,4 @@
-
-    import pytest
+import pytest
 from services.user_service import UserService
 from services.mission_service import MissionService
 from services.game_service import GameService

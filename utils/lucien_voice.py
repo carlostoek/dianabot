@@ -1,5 +1,4 @@
-
-    from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List
 from models.narrative_state import (
     UserNarrativeState,
     NarrativeLevel,

@@ -1,5 +1,4 @@
-
-    from functools import wraps
+from functools import wraps
 from telegram import Update
 from telegram.ext import ContextTypes
 from models.user import User

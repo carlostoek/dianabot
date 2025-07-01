@@ -1,5 +1,4 @@
-
-    from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 from models.shop import ShopItem, ShopCategory, ShopPurchase, ShopItemType, ShopRarity
 from models.user import User

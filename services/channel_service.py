@@ -1,5 +1,4 @@
-
-    from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func, text
 from models.channel import (
     Channel,

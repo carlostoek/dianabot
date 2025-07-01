@@ -1,5 +1,4 @@
-
-    from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler
 from services.user_service import UserService
 from utils.lucien_voice import LucienVoice

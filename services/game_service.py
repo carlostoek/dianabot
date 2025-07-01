@@ -1,5 +1,4 @@
-
-    from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 from models.game import Game, GameSession, GameType, GameDifficulty, GameStatus
 from models.user import User

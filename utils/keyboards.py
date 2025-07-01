@@ -1,5 +1,4 @@
-
-    from telegram import (
+from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,

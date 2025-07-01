@@ -1,5 +1,4 @@
-
-    from celery import Celery
+from celery import Celery
 from celery.schedules import crontab
 from services.user_service import UserService
 from services.mission_service import MissionService

@@ -1,5 +1,4 @@
-
-    from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
 from models.narrative_triggers import (
     NarrativeTrigger,

@@ -17,7 +17,7 @@ class GameService:
     def __init__(self):
         self.db = next(get_db())
         self.lucien = LucienVoice()
-        
+
         # Configuración de juegos
         self.GAME_CONFIGS = self._load_game_configurations()
         
@@ -39,6 +39,10 @@ class GameService:
             GameType.MEMORY_CHALLENGE: ['focused', 'persistent'],
             GameType.CREATIVITY_TEST: ['imaginative', 'artistic']
         }
+
+    def _load_game_configurations(self) -> Dict[str, Any]:
+        """Carga configuración de juegos (placeholder)"""
+        return {}
     
     # ===== GESTIÓN DE SESIONES DE JUEGO =====
     
@@ -470,5 +474,4 @@ class GameService:
             GameDifficulty.EXPERT: 10
         }
 
-Perfecto adelante
    

@@ -24,4 +24,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def init_db():
+    # Lógica mínima de inicialización
+    print("Base de datos inicializada (placeholder)")
    

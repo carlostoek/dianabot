@@ -67,15 +67,15 @@ Lucien siempre está aquí para guiarte en tu camino hacia... conocer mejor a Di
         }
 
         user = self.user_service.get_or_create_user(user_data)
-        narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
-        user_stats = self.user_service.get_user_detailed_stats(user["id"])
+        narrative_state = self.user_service.get_or_create_narrative_state(user.id)
+        user_stats = self.user_service.get_user_detailed_stats(user.id)
 
         quick_profile = f"""
 {self.lucien.EMOJIS['lucien']} **Evaluación Rápida**
 
 *[Consultando registros]*
 
-{user['first_name']}, aquí tienes un resumen de tu progreso:
+{user.first_name}, aquí tienes un resumen de tu progreso:
 
 📊 **Estado Actual:**
 • Nivel: {user_stats['level']} ⭐

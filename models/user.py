@@ -25,6 +25,7 @@ class User(Base):
     is_vip = Column(Boolean, default=False)
     vip_expires = Column(DateTime, nullable=True)
     is_banned = Column(Boolean, default=False)
+    created_today = Column(Boolean, default=False)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

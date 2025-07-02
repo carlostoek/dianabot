@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship
 from models.narrative import UserLorePiece
 from models.narrative_state import UserNarrativeState

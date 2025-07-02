@@ -1,15 +1,24 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum, DateTime, Boolean
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    Enum as SQLEnum,
+    DateTime,
+    Boolean,
+)
 from sqlalchemy.orm import relationship
 from config.database import Base
-import enum
+from enum import Enum
 from datetime import datetime
 
 
-class ShopItemType(enum.Enum):
+class ShopItemType(Enum):
     GENERIC = "generic"
+    SKIN = "skin"
 
 
-class ShopRarity(enum.Enum):
+class ShopRarity(Enum):
     COMMON = "common"
 
 
@@ -27,8 +36,8 @@ class ShopItem(Base):
     category_id = Column(Integer, ForeignKey("shop_categories.id"))
     name = Column(String(100))
     price = Column(Integer, default=0)
-    item_type = Column(Enum(ShopItemType))
-    rarity = Column(Enum(ShopRarity))
+    item_type = Column(SQLEnum(ShopItemType))
+    rarity = Column(SQLEnum(ShopRarity))
     is_active = Column(Boolean, default=True)
 
     category = relationship("ShopCategory")

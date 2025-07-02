@@ -36,10 +36,10 @@ class StartHandler:
 
         # Crear o obtener usuario
         user = self.user_service.get_or_create_user(user_data)
-        narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
+        narrative_state = self.user_service.get_or_create_narrative_state(user.id)
 
         # Verificar si es usuario nuevo o returning
-        if user["created_today"]:
+        if user.created_today:
             await self._send_new_user_experience(update, context, user, narrative_state)
         else:
             await self._send_returning_user_experience(
@@ -55,7 +55,7 @@ class StartHandler:
     ) -> None:
         """Experiencia MAGNÉTICA para usuarios nuevos"""
 
-        first_name = user["first_name"]
+        first_name = user.first_name
 
         # MENSAJE INICIAL SEDUCTOR
         welcome_message = f"""
@@ -105,7 +105,7 @@ Diana no es una mujer ordinaria. Es selectiva, inteligente, y tiene poco tiempo 
     ) -> None:
         """Experiencia para usuarios que regresan"""
 
-        first_name = user["first_name"]
+        first_name = user.first_name
 
         # Mensaje personalizado según progreso
         if narrative_state.has_divan_access:
@@ -154,14 +154,14 @@ Tu progreso no ha pasado desapercibido. Cada interacción, cada decisión... tod
 
         # Validar token
         token_result = self.channel_service.validate_and_use_vip_token(
-            token, user["id"]
+            token, user.id
         )
 
         if not token_result.get("success"):
             error_message = f"""
 {self.lucien.EMOJIS['lucien']} *[Con pesar profesional]*
 
-Me temo que hay un problema con tu invitación, {user['first_name']}.
+Me temo que hay un problema con tu invitación, {user.first_name}.
 
 **Error:** {token_result.get('error', 'Token no válido')}
 
@@ -187,7 +187,7 @@ Pero no todo está perdido. Diana siempre tiene... otros caminos para quienes de
         vip_welcome = f"""
 {self.lucien.EMOJIS['diana']} *Diana aparece con una sonrisa exclusiva*
 
-"*{user['first_name']}... has sido personalmente invitado a mi círculo más íntimo.*"
+"*{user.first_name}... has sido personalmente invitado a mi círculo más íntimo.*"
 
 *[Con elegancia suprema]*
 "*No cualquiera recibe acceso directo al Diván. Alguien habló muy bien de ti...*"
@@ -259,7 +259,7 @@ Diana está... especialmente interesada en conocerte.
 
 *[Con elegancia profesional]*
 
-¿Qué deseas explorar hoy, {user['first_name']}?
+¿Qué deseas explorar hoy, {user.first_name}?
 
 *[Con aire sugerente]*
 Diana observa tus elecciones con... interés creciente.
@@ -333,7 +333,7 @@ Diana observa tus elecciones con... interés creciente.
 
 *[Con intimidad exclusiva]*
 
-"*{user['first_name']}, mi querido miembro del círculo íntimo...*"
+"*{user.first_name}, mi querido miembro del círculo íntimo...*"
 
 *[Con sonrisa seductora]*
 "*¿Qué deseo tuyo puedo cumplir hoy?*"

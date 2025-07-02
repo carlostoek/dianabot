@@ -1,6 +1,7 @@
 from .core import User
 from .narrative import LorePiece, UserBackpack
 from .vip import VIPAccess, VIPToken
+from .notifications import Notification
 
 __all__ = [
     "User",
@@ -8,4 +9,5 @@ __all__ = [
     "UserBackpack",
     "VIPAccess",
     "VIPToken",
+    "Notification",
 ]

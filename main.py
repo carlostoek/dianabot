@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher
 
 from config import settings
 from database_init import init_db
-from handlers import onboarding, backpack, combination, vip_access, notifications
+from handlers import onboarding, backpack, combination, vip_access, notifications, gamification
 from middlewares.vip_middleware import VIPMiddleware
 from middlewares.logging import LoggingMiddleware
 from utils.notification_scheduler import NotificationScheduler
@@ -18,6 +18,7 @@ async def main() -> None:
     dp.include_router(combination.router)
     dp.include_router(vip_access.router)
     dp.include_router(notifications.router)
+    dp.include_router(gamification.router)
     # VIP middleware can be attached to specific channels if needed
     # dp.message.middleware(VIPMiddleware(channel_id=0))
     scheduler = NotificationScheduler(bot)

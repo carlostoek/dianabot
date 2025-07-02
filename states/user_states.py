@@ -13,3 +13,8 @@ class CombiningPieces(StatesGroup):
 
 class AwaitingVIPValidation(StatesGroup):
     awaiting_vip_validation = State()
+
+
+class Gamification(StatesGroup):
+    selecting_mission = State()
+    playing_minigame = State()

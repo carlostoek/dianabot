@@ -6,7 +6,7 @@ from services.game_service import GameService
 from services.auction_service import AuctionService
 from services.shop_service import ShopService
 from utils.lucien_voice import LucienVoice
-from handlers.start_handler import StartHandler
+#from handlers.start_handler import StartHandler
 from typing import Dict, Any
 
 

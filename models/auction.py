@@ -30,7 +30,7 @@ class AuctionType(enum.Enum):
     RESERVE = "reserve"  # Con precio de reserva
 
 
-class ItemType(enum.Enum):
+class AuctionItemCategory(enum.Enum):
     VIP_ACCESS = "vip_access"
     CUSTOM_ROLE = "custom_role"
     EXCLUSIVE_CONTENT = "exclusive_content"
@@ -39,7 +39,7 @@ class ItemType(enum.Enum):
     CUSTOM_ITEM = "custom_item"
 
 
-class AuctionItemType(enum.Enum):
+class ItemType(enum.Enum):
     VIDEO = "video"
 
 
@@ -101,7 +101,7 @@ class AuctionItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     auction_id = Column(Integer, ForeignKey("auctions.id"), nullable=False)
 
-    item_type = Column(Enum(ItemType), nullable=False)
+    item_type = Column(Enum(AuctionItemCategory), nullable=False)
     name = Column(String(200), nullable=False)
     description = Column(Text)
     quantity = Column(Integer, default=1)

@@ -5,7 +5,7 @@ from models.auction import (
     AuctionItem,
     AuctionBid,
     AuctionStatus,
-    AuctionItemType,
+    ItemType,
 )
 from models.user import User
 from models.narrative_state import UserNarrativeState, NarrativeLevel
@@ -947,7 +947,7 @@ El contenido exclusivo ha sido entregado a tu colección privada.
                 special_content = {
                     "title": "Bienvenida Premium de Diana",
                     "description": "Diana ha preparado algo especial para celebrar tu primera compra premium...",
-                    "type": AuctionItemType.VIDEO,
+                    "type": ItemType.VIDEO,
                     "rarity_level": "epic",
                 }
 

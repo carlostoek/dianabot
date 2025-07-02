@@ -10,7 +10,7 @@ from telegram.ext import (
 from handlers.start_handler import StartHandler
 from handlers.callback_handler import CallbackHandler
 from handlers.command_handlers import CommandHandlers
-from config.database import get_db
+from config.database import get_db, init_db
 
 # Configurar logging
 logging.basicConfig(

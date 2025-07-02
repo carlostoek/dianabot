@@ -9,7 +9,8 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import scoped_session, sessionmaker, relationship
+import os
 from datetime import datetime
 from .settings import settings
 
@@ -29,6 +30,8 @@ def get_db():
 
 
 def init_db():
-    # Lógica mínima de inicialización
-    print("Base de datos inicializada (placeholder)")
+    """Initialize the database session factory using environment settings."""
+    engine = create_engine(os.getenv('DATABASE_URL'))
+    global Session
+    Session = scoped_session(sessionmaker(bind=engine))
    

@@ -1,5 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship
+from models.narrative import UserLorePiece
+from models.narrative_state import UserNarrativeState
+from models.auction import AuctionBid
 from datetime import datetime
 from config.database import Base
 
@@ -32,6 +35,7 @@ class User(Base):
     missions = relationship("UserMission", back_populates="user")
     lore_pieces = relationship("UserLorePiece", back_populates="user")
     auction_bids = relationship("AuctionBid", back_populates="user")
+    narrative_state = relationship("UserNarrativeState", uselist=False, back_populates="user")
 
 
 class UserStats(Base):

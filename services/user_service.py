@@ -22,6 +22,15 @@ class UserService:
         self.db = next(get_db())
         self.lucien = LucienVoice()
 
+    def create_or_update_user(self, user_data: Dict[str, Any]):
+        """Compatibilidad con tests - crea o actualiza un usuario"""
+        return self.get_or_create_user(
+            user_data.get("telegram_id"),
+            user_data.get("first_name"),
+            user_data.get("username"),
+            user_data.get("last_name"),
+        )
+
     # ===== GESTIÓN DE USUARIOS =====
 
     def get_or_create_user(

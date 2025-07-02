@@ -21,6 +21,19 @@ class MissionType(enum.Enum):
     NARRATIVE = "narrative"
 
 
+class MissionDifficulty(enum.Enum):
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
+
+
+class MissionStatus(enum.Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    PAUSED = "paused"
+
+
 class Mission(Base):
     __tablename__ = "missions"
 

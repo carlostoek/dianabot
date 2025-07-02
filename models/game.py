@@ -21,12 +21,38 @@ class GameType(enum.Enum):
     WORD_GAME = "word_game"
     MEMORY = "memory"
     MATH = "math"
+    RIDDLE = "riddle"
+    WORD_ASSOCIATION = "word_association"
+    PATTERN_RECOGNITION = "pattern_recognition"
+    MORAL_DILEMMA = "moral_dilemma"
+    QUICK_CHOICE = "quick_choice"
+    MEMORY_CHALLENGE = "memory_challenge"
+    CREATIVITY_TEST = "creativity_test"
 
 
 class DifficultyLevel(enum.Enum):
     EASY = "easy"
     MEDIUM = "medium"
     HARD = "hard"
+
+
+class GameDifficulty(enum.Enum):
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
+    EXPERT = "expert"
+
+
+class GameStatus(enum.Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class Game(Base):
+    __tablename__ = "games"
+
+    id = Column(Integer, primary_key=True, index=True)
 
 
 class TriviaQuestion(Base):

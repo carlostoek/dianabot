@@ -39,6 +39,10 @@ class ItemType(enum.Enum):
     CUSTOM_ITEM = "custom_item"
 
 
+class AuctionItemType(enum.Enum):
+    VIDEO = "video"
+
+
 class Auction(Base):
     __tablename__ = "auctions"
 

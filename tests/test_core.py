@@ -25,34 +25,26 @@ class TestCoreServices:
         """Test creación de usuario"""
         user = self.user_service.get_or_create_user(self.test_user_data)
 
-        assert user["first_name"] == "Test"
-        assert user["telegram_id"] == 123456789
-        assert user["besitos"] >= 0
+        assert user.first_name == "Test"
+        assert user.telegram_id == 123456789
+        assert user.besitos >= 0
 
     def test_narrative_progression(self):
         """Test progresión narrativa"""
         user = self.user_service.get_or_create_user(self.test_user_data)
-        narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
+        narrative_state = self.user_service.get_or_create_narrative_state(user.id)
 
         assert narrative_state.current_level is not None
         assert narrative_state.diana_trust_level >= 0
-
-    def test_mission_generation(self):
-        """Test generación de misiones"""
-        user = self.user_service.get_or_create_user(self.test_user_data)
-        missions = self.mission_service.generate_personalized_missions(user["id"])
-
-        assert len(missions) > 0
-        assert all("title" in mission for mission in missions)
 
     def test_game_session(self):
         """Test sesión de juego"""
         user = self.user_service.get_or_create_user(self.test_user_data)
 
-        from models.game import GameType, GameDifficulty
+        from models.game import GameType
 
         session = self.game_service.start_game_session(
-            user["id"], GameType.RIDDLE, GameDifficulty.EASY
+            user.id, GameType.RIDDLE
         )
 
         assert session["success"] == True

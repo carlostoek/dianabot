@@ -6,9 +6,7 @@ class Settings:
     """Configuración centralizada del bot"""
 
     # === DATABASE ===
-    DATABASE_URL = os.getenv(
-        "DATABASE_URL", "postgresql://user:pass@localhost/diana_bot"
-    )
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
 
     # === TELEGRAM ===
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

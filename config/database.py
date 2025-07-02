@@ -14,11 +14,13 @@ from datetime import datetime
 from .settings import settings
 
 engine = create_engine(settings.DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def get_db():
+    # Ensure tables exist
+    Base.metadata.create_all(engine)
     db = SessionLocal()
     try:
         yield db

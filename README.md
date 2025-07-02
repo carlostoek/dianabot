@@ -28,38 +28,6 @@ telegram_narrative_bot/
 ├── tasks/                  # Tareas programadas
 ├── keyboards/              # Teclados personalizados
 └── tests/                  # Pruebas unitarias e integradas
-```
-
----
-
-## 🚀 Instalación
-
-1. Clona este repositorio:
-```bash
-git clone https://github.com/tuusuario/telegram_narrative_bot.git
-```
-
-2. Instala las dependencias:
-```bash
-pip install -r requirements.txt
-```
-
-3. Configura las variables en `config.py`:
-```python
-DATABASE_URL = "postgresql://usuario:contraseña@host:puerto/dbname"
-BOT_TOKEN = "TU_TOKEN_DE_TELEGRAM"
-ADMIN_USER_IDS = [123456789]  # IDs de los administradores
-```
-
-4. Inicializa la base de datos:
-```bash
-python database_init.py
-```
-
-5. Ejecuta el bot:
-```bash
-python main.py
-```
 
 ---
 

@@ -579,4 +579,35 @@ Pocos llegan tan lejos en ganar su confianza...
             return f"""
 *[Con expectativa]*
 
-{first_name}, Diana está
+{first_name}, Diana está claramente interesada en ti. Tus acciones no pasan desapercibidas.
+
+*[Con anticipación]*
+
+Estás muy cerca de algo... especial.
+            """.strip()
+
+        elif trust >= 40:
+            return f"""
+*[Con aprobación]*
+
+{first_name}, Diana ha comenzado a notarte. Tu dedicación está dando frutos.
+
+*[Con aliento]*
+
+Continúa así y pronto verás recompensas más... significativas.
+            """.strip()
+
+        else:
+            return f"""
+*[Con evaluación]*
+
+{first_name}, Diana está observando tus primeros pasos. Cada acción cuenta.
+
+*[Con orientación]*
+
+Demuestra dedicación y consistencia para ganar su atención.
+            """.strip()
+
+
+# Registrar handler
+callback_handler = CallbackQueryHandler(CallbackHandler().handle_callback)

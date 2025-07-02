@@ -1,4 +1,5 @@
 from aiogram import Router, types, F
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from services.mission_service import MissionService
@@ -12,7 +13,7 @@ mission_service = MissionService()
 gamification_service = GamificationService()
 
 
-@router.message(commands=["misiones", "mision"])
+@router.message(Command(commands=["misiones", "mision"]))
 @onboarding_required
 async def show_daily_mission(message: types.Message, state: FSMContext, user):
     user_mission = await mission_service.assign_daily_mission(user.id)
@@ -51,7 +52,7 @@ async def play_minigame(callback: types.CallbackQuery, state: FSMContext):
     )
 
 
-@router.message(commands=["reclamar"])
+@router.message(Command("reclamar"))
 @onboarding_required
 async def claim_reward(message: types.Message, user):
     missions = await gamification_service.get_unclaimed_completed(user.id)

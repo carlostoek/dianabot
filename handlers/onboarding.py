@@ -1,4 +1,5 @@
 from aiogram import Router, types
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from services.user_service import UserService
@@ -13,7 +14,7 @@ WELCOME_TEXT = (
     "Pulsa el botón para 'Abrir mi 👜 colección miserable'"
 )
 
-@router.message(commands=["start"])
+@router.message(Command("start"))
 async def start(message: types.Message, state: FSMContext) -> None:
     user = await user_service.get_or_create_user(
         telegram_id=message.from_user.id,

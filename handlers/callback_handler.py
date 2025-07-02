@@ -1,115 +1,231 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackQueryHandler
+from telegram.ext import ContextTypes
 from services.user_service import UserService
-from services.mission_service import MissionService
-from services.game_service import GameService
-from services.auction_service import AuctionService
-from services.shop_service import ShopService
 from utils.lucien_voice import LucienVoice
-# ❌ NO IMPORTAR StartHandler aquí
+import logging
 from typing import Dict, Any
 
+logger = logging.getLogger(__name__)
 
 class CallbackHandler:
-    """Maneja todos los callbacks de botones con experiencia SEDUCTORA"""
+    """Maneja todos los callbacks de botones - VERSIÓN SIMPLIFICADA"""
 
     def __init__(self):
-        self.user_service = UserService()
-        self.mission_service = MissionService()
-        self.game_service = GameService()
-        self.auction_service = AuctionService()
-        self.shop_service = ShopService()
-        self.lucien = LucienVoice()
-        # ❌ ELIMINAR ESTA LÍNEA:
-        # self.start_handler = StartHandler()
+        try:
+            self.user_service = UserService()
+            self.lucien = LucienVoice()
+            logger.info("✅ CallbackHandler inicializado")
+        except Exception as e:
+            logger.error(f"❌ Error inicializando CallbackHandler: {e}")
 
-    async def handle_callback(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
-        """Router principal de callbacks"""
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Maneja todos los callbacks"""
+        
+        try:
+            query = update.callback_query
+            await query.answer()
+            
+            callback_data = query.data
+            user_id = update.effective_user.id
+            
+            logger.info(f"🔍 Callback recibido: {callback_data} de usuario {user_id}")
 
-        query = update.callback_query
-        await query.answer()
+            # Routing de callbacks
+            if callback_data == "profile":
+                await self._handle_profile(update, context)
+            elif callback_data == "missions":
+                await self._handle_missions(update, context)
+            elif callback_data == "premium":
+                await self._handle_premium(update, context)
+            elif callback_data.startswith("intro_"):
+                await self._handle_intro_callbacks(update, context, callback_data)
+            else:
+                await self._handle_unknown_callback(update, context, callback_data)
 
-        user_data = {
-            "telegram_id": query.from_user.id,
-            "username": query.from_user.username,
-            "first_name": query.from_user.first_name,
-            "last_name": query.from_user.last_name,
-        }
+        except Exception as e:
+            logger.error(f"❌ Error en handle_callback: {e}", exc_info=True)
+            await self._send_error_message(update)
 
-        user = self.user_service.get_or_create_user(user_data)
-        narrative_state = self.user_service.get_or_create_narrative_state(user.id)
+    async def _handle_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Maneja el callback de perfil - SIMPLIFICADO"""
+        
+        try:
+            user_id = update.effective_user.id
+            first_name = update.effective_user.first_name or "Usuario"
+            
+            # Obtener usuario de forma segura
+            try:
+                user_data = {
+                    "telegram_id": user_id,
+                    "username": update.effective_user.username,
+                    "first_name": first_name,
+                    "last_name": update.effective_user.last_name,
+                }
+                user = self.user_service.get_or_create_user(user_data)
+                
+                # Acceder a atributos de forma segura
+                level = getattr(user, 'level', 1)
+                besitos = getattr(user, 'besitos', 0)
+                experience = getattr(user, 'experience', 0)
+                is_vip = getattr(user, 'is_vip', False)
+                
+            except Exception as e:
+                logger.error(f"Error obteniendo usuario: {e}")
+                # Valores por defecto si falla la BD
+                level = 1
+                besitos = 0
+                experience = 0
+                is_vip = False
 
-        # Router de callbacks
-        callback_data = query.data
+            # Mensaje de perfil
+            profile_message = f"""
+👤 **Perfil de {first_name}**
 
-        # Si necesitas funcionalidad de StartHandler, importa dinámicamente
-        if callback_data in ["intro_diana", "intro_lucien", "intro_bot"]:
-            # Importación dinámica para evitar circular import
-            from handlers.start_handler import StartHandler
-            start_handler = StartHandler()
-            await self._handle_intro_callbacks(update, context, callback_data, start_handler)
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien revisa sus notas]*
 
-        # === NAVIGATION ===
-        elif callback_data == "main_menu":
-            from handlers.start_handler import StartHandler
-            await StartHandler()._show_main_menu(
-                update, context, user, narrative_state
+"*Veamos tu progreso...*"
+
+📊 **Estadísticas:**
+• **Nivel:** {level}
+• **Experiencia:** {experience} XP
+• **Besitos:** {besitos} 💋
+• **Estado:** {'👑 VIP' if is_vip else '🆓 Gratuito'}
+
+*[Con aire evaluativo]*
+"*{'Impresionante progreso' if level > 3 else 'Buen comienzo'}, {first_name}...*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("📈 Ver Estadísticas", callback_data="stats")],
+                [InlineKeyboardButton("🎯 Mis Misiones", callback_data="my_missions")],
+                [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                profile_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
             )
-        elif callback_data == "back":
-            await self._handle_back(update, context, user, narrative_state)
 
-        # === PROFILE ===
-        elif callback_data == "profile":
-            await self._show_profile(update, context, user, narrative_state)
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_profile: {e}", exc_info=True)
+            await self._send_error_message(update)
 
-        # === CONVERSION FOCUSED ===
-        elif callback_data == "premium_info":
-            await self._show_premium_info(update, context, user)
-        elif callback_data == "vip_info":
-            await self._show_vip_info(update, context, user)
-        elif callback_data == "vip_testimonials":
-            await self._show_vip_testimonials(update, context, user)
-        elif callback_data == "how_to_vip":
-            await self._show_how_to_vip(update, context, user)
-        elif callback_data == "special_offer":
-            await self._show_special_offer(update, context, user)
+    async def _handle_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Maneja el callback de misiones - SIMPLIFICADO"""
+        
+        try:
+            first_name = update.effective_user.first_name or "Usuario"
 
-        # === VIP UPSELLS ===
-        elif callback_data == "intimate_collection":
-            await self._show_intimate_collection(update, context, user)
-        elif callback_data == "custom_experiences":
-            await self._show_custom_experiences(update, context, user)
-        elif callback_data == "vip_exclusive_offers":
-            await self._show_vip_exclusive_offers(update, context, user)
+            missions_message = f"""
+🎯 **Misiones de {first_name}**
 
-        # === FUNCTIONALITY ===
-        elif callback_data == "missions":
-            await self._show_missions(update, context, user, narrative_state)
-        elif callback_data == "games":
-            await self._show_games(update, context, user)
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien consulta una lista elegante]*
 
-        # Agregar más handlers según necesidad...
+"*Diana ha preparado algunas... tareas para ti.*"
 
-    async def _handle_intro_callbacks(self, update, context, callback_data, start_handler):
+📋 **Misiones Disponibles:**
+
+🌟 **Misión Diaria**
+• Interactuar con el bot
+• Recompensa: 10 Besitos 💋
+• Estado: Disponible
+
+🎭 **Conocer a Diana**
+• Explorar todas las introducciones
+• Recompensa: 25 Besitos 💋
+• Estado: En progreso
+
+💎 **Camino al VIP**
+• Completar 5 misiones
+• Recompensa: Acceso especial
+• Estado: 0/5
+
+*[Con aire alentador]*
+"*Cada misión te acerca más a Diana...*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("✅ Completar Diaria", callback_data="complete_daily")],
+                [InlineKeyboardButton("🎭 Explorar Más", callback_data="explore_missions")],
+                [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                missions_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_missions: {e}", exc_info=True)
+            await self._send_error_message(update)
+
+    async def _handle_premium(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Maneja el callback de premium"""
+        
+        try:
+            first_name = update.effective_user.first_name or "Usuario"
+
+            premium_message = f"""
+🔥 **Contenido Premium**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana aparece con una sonrisa seductora]*
+
+"*{first_name}... quieres ver lo que tengo reservado para mis... especiales.*"
+
+*[Con aire exclusivo]*
+
+💎 **Acceso VIP incluye:**
+• Contenido íntimo exclusivo
+• Subastas de experiencias personalizadas
+• Chat directo con Diana
+• Eventos privados
+• Recompensas premium
+
+🎭 **Testimonios VIP:**
+"*Diana cambió mi vida...*" - Usuario VIP
+"*Nunca había experimentado algo así...*" - Miembro del Diván
+
+*[Con voz susurrante]*
+"*¿Estás listo para el siguiente nivel?*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("👑 Obtener Acceso VIP", callback_data="get_vip")],
+                [InlineKeyboardButton("📸 Vista Previa", callback_data="vip_preview")],
+                [InlineKeyboardButton("💬 Testimonios", callback_data="testimonials")],
+                [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                premium_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_premium: {e}", exc_info=True)
+            await self._send_error_message(update)
+
+    async def _handle_intro_callbacks(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> None:
         """Maneja callbacks de introducción"""
-
+        
         if callback_data == "intro_diana":
-            await self._show_diana_intro(update, context)
+            await self._show_diana_intro(update)
         elif callback_data == "intro_lucien":
-            await self._show_lucien_intro(update, context)
+            await self._show_lucien_intro(update)
         elif callback_data == "intro_bot":
-            await self._show_bot_intro(update, context)
+            await self._show_bot_intro(update)
 
-
-    # === INTRO EXPERIENCES ===
-
-    async def _show_diana_intro(self, update, context):
+    async def _show_diana_intro(self, update: Update) -> None:
         """Muestra introducción de Diana"""
-
+        
         intro_message = f"""
-{self.lucien.EMOJIS['diana']} *Diana emerge de las sombras...*
+{self.lucien.EMOJIS.get('diana', '👑')} *Diana emerge de las sombras...*
 
 "*Así que quieres conocerme...*"
 
@@ -128,495 +244,59 @@ class CallbackHandler:
 
         keyboard = [
             [InlineKeyboardButton("🔥 Estoy listo", callback_data="ready_for_diana")],
-            [InlineKeyboardButton("🎭 Háblame más de ti", callback_data="more_about_diana")],
-            [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="back_to_start")],
+            [InlineKeyboardButton("🎭 Háblame más", callback_data="more_about_diana")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="back_to_menu")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
-            intro_message,
-            reply_markup=reply_markup,
-            parse_mode="Markdown",
+            intro_message, 
+            reply_markup=reply_markup, 
+            parse_mode="Markdown"
         )
 
+    async def _handle_unknown_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> None:
+        """Maneja callbacks no reconocidos"""
+        
+        message = f"""
+🎭 *[Lucien con disculpas]*
 
-    async def _show_lucien_intro(self, update, context):
-        """Muestra introducción de Lucien"""
+"*Parece que esa función aún está en desarrollo...*"
 
-        intro_message = f"""
-{self.lucien.EMOJIS['lucien']} *Lucien hace una reverencia elegante*
+**Callback:** `{callback_data}`
 
-"*Permíteme presentarme apropiadamente...*"
-
-*[Con aire distinguido]*
-
-"*Soy Lucien, mayordomo personal de Diana desde hace... bueno, eso no importa. Lo que importa es que soy su filtro.*"
-
-*[Con aire conspiratorio]*
-
-"*Diana recibe muchas... solicitudes. Pero solo los más... interesantes llegan hasta ella. Mi trabajo es evaluar si tienes lo necesario.*"
-
-*[Con una sonrisa profesional]*
-
-"*No te preocupes. Soy justo... pero exigente.*"
+*[Con aire profesional]*
+"*Diana me pide que te asegure que pronto estará disponible.*"
         """.strip()
 
         keyboard = [
-            [InlineKeyboardButton("🎯 ¿Cómo me evalúas?", callback_data="how_evaluation")],
-            [InlineKeyboardButton("💎 ¿Qué busca Diana?", callback_data="what_diana_wants")],
-            [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="back_to_start")],
+            [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
-            intro_message,
-            reply_markup=reply_markup,
-            parse_mode="Markdown",
+            message, 
+            reply_markup=reply_markup, 
+            parse_mode="Markdown"
         )
 
-    async def _show_bot_intro(self, update, context):
-        """Muestra introducción del bot"""
+    async def _send_error_message(self, update: Update) -> None:
+        """Envía mensaje de error elegante"""
+        
+        error_message = f"""
+🎭 *[Lucien con disculpas profesionales]*
 
-        intro_message = f"""
-{self.lucien.EMOJIS['lucien']} *Con aire profesional*
+"*Ha ocurrido un inconveniente técnico. Diana me pide que te asegure que esto se resolverá pronto.*"
 
-"*Ah, quieres saber qué hace este lugar especial...*"
-
-*[Gesticulando elegantemente]*
-
-**Este no es un bot ordinario.** Es el sistema personal de Diana para encontrar... compañía de calidad.
-
-✨ **Características únicas:**
-• Sistema de seducción narrativa inmersiva
-• Gamificación con recompensas reales
-• Acceso a contenido exclusivo de Diana
-• Subastas de experiencias íntimas
-• Misiones personalizadas
-
-*[Con aire misterioso]*
-
-"*Pero lo más especial... es que Diana realmente está aquí. Observando. Eligiendo.*"
+*[Con aire tranquilizador]*
+"*Usa /start para continuar.*"
         """.strip()
 
-        keyboard = [
-            [InlineKeyboardButton("🚀 ¡Empezar ya!", callback_data="start_journey")],
-            [InlineKeyboardButton("💎 Ver contenido VIP", callback_data="vip_preview")],
-            [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="back_to_start")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            intro_message,
-            reply_markup=reply_markup,
-            parse_mode="Markdown",
-        )
-    # === CONVERSION EXPERIENCES ===
-
-    async def _show_vip_info(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Dict
-    ) -> None:
-        """Info VIP MAGNÉTICA para conversión"""
-
-        vip_info = f"""
-{self.lucien.EMOJIS['diana']} *Diana aparece con exclusividad*
-
-"*{user.first_name}... quieres saber sobre mi círculo íntimo.*"
-
-*[Con aire misterioso]*
-
-"*El Diván no es solo un canal VIP. Es mi santuario personal. Solo el 5% de quienes me conocen llegan ahí...*"
-
-{self.lucien.EMOJIS['lucien']} **¿Por qué Diana elige solo a algunos?**
-
-*[Con conocimiento íntimo]*
-
-El acceso al Diván no se compra... se **gana**. Diana evalúa:
-
-✨ **Dedicación genuina** - No buscadores de contenido rápido
-💎 **Inteligencia emocional** - Quienes entienden la sutileza  
-🎭 **Personalidad fascinante** - Cada individuo debe ser único
-🔥 **Consistencia** - Diana observa patrones, no momentos
-
-**¿Qué obtienen los miembros del Diván?**
-
-👑 **Contenido ultra exclusivo** de Diana
-💋 **Interacción personal** - Diana responde directamente
-🎯 **Subastas premium** - Contenido que nunca sale del Diván
-✨ **Experiencias personalizadas** - Creadas solo para ti
-🛡️ **Privacidad absoluta** - Lo que pasa en el Diván, queda en el Diván
-
-*[Con intensidad]*
-
-Diana está observando tu comportamiento ahora mismo, {user.first_name}. ¿Serás digno de su atención íntima?
-        """.strip()
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "🔥 Quiero demostrar que soy digno", callback_data="prove_worthy"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "💎 ¿Cómo puedo impresionar a Diana?",
-                    callback_data="how_to_impress",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🎭 Ver testimonios del Diván", callback_data="divan_testimonials"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "📊 Evaluar mi progreso actual", callback_data="check_vip_progress"
-                )
-            ],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            vip_info, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    async def _show_premium_info(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Dict
-    ) -> None:
-        """Info de contenido premium SEDUCTORA"""
-
-        premium_info = f"""
-{self.lucien.EMOJIS['diana']} *Diana se acerca con misterio*
-
-"*{user.first_name}... te interesa mi contenido más... íntimo.*"
-
-*[Con sonrisa seductora]*
-
-"*No todo lo que creo está disponible para todos. Las mejores piezas, las más personales... requieren verdadera dedicación.*"
-
-{self.lucien.EMOJIS['lucien']} **Sistema de Contenido Premium**
-
-*[Con elegancia]*
-
-Diana crea contenido en diferentes niveles de exclusividad:
-
-🌟 **Contenido Público** - Lo que todos pueden ver
-🔥 **Contenido Kinkys** - Para miembros del canal principal  
-💎 **Contenido Diván** - Solo para VIPs
-✨ **Contenido Ultra Exclusivo** - Subastas especiales
-💋 **Contenido Personalizado** - Creado solo para ti
-
-**¿Cómo funciona?**
-
-💰 **Inviertes en besitos** → Diana crea más contenido exclusivo
-🎯 **Participas en subastas** → Obtienes piezas únicas
-🛍️ **Compras en su tienda** → Accedes a colecciones especiales
-🎭 **Demuestras lealtad** → Diana te recompensa personalmente
-
-*[Con aire conspiratorio]*
-
-Los miembros más dedicados han recibido contenido que... bueno, que Diana jamás volverá a crear.
-        """.strip()
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "💎 Ver subastas activas", callback_data="view_auctions"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🛍️ Explorar tienda exclusiva", callback_data="explore_shop"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🔥 ¿Cómo ganar más besitos?", callback_data="earn_besitos"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "✨ Testimonios de contenido", callback_data="content_testimonials"
-                )
-            ],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            premium_info, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    # === PROFILE EXPERIENCES ===
-
-    async def _show_profile(
-        self,
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
-        user: Dict,
-        narrative_state: Any,
-    ) -> None:
-        """Perfil básico ATRACTIVO"""
-
-        # Obtener estadísticas del usuario
-        user_stats = self.user_service.get_user_detailed_stats(user.id)
-
-        # Mensaje personalizado según progreso
-        progress_message = self._get_progress_message(
-            narrative_state, user.first_name
-        )
-
-        profile_message = f"""
-{self.lucien.EMOJIS['lucien']} **Evaluación Personal de {user.first_name}**
-
-{progress_message}
-
-📊 **Estadísticas Actuales:**
-• **Nivel:** {user_stats['level']} ⭐
-• **Experiencia:** {user_stats['experience']:,} XP
-• **Besitos:** {user_stats['besitos']:,} 💋
-• **Misiones completadas:** {user_stats['missions_completed']}
-• **Juegos jugados:** {user_stats['games_played']}
-
-🎭 **Análisis de Personalidad:**
-• **Arquetipo:** {narrative_state.primary_archetype.value if narrative_state.primary_archetype else 'En evaluación'}
-• **Progreso narrativo:** {narrative_state.current_level.value}
-• **Nivel de confianza con Diana:** {narrative_state.diana_trust_level}/100
-
-{self.lucien.EMOJIS['diana']} *[Diana observa]*
-
-"*{user.first_name} está... progresando. Pero aún hay mucho camino por recorrer.*"
-        """.strip()
-
-        keyboard = [
-            [InlineKeyboardButton("🎯 Próximas misiones", callback_data="missions")],
-            [InlineKeyboardButton("🎮 Mejorar con juegos", callback_data="games")],
-            [
-                InlineKeyboardButton(
-                    "📈 ¿Cómo subir de nivel?", callback_data="level_up_guide"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "💎 ¿Cómo llegar al Diván?", callback_data="divan_guide"
-                )
-            ],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            profile_message, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    # === FUNCTIONALITY ===
-
-    async def _show_missions(
-        self,
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
-        user: Dict,
-        narrative_state: Any,
-    ) -> None:
-        """Muestra misiones con MOTIVACIÓN"""
-
-        # Obtener misiones activas
-        active_missions = self.mission_service.get_user_active_missions(user.id)
-
-        if not active_missions:
-            missions_message = f"""
-{self.lucien.EMOJIS['lucien']} **Misiones Personalizadas**
-
-*[Con eficiencia]*
-
-{user.first_name}, estoy preparando nuevas misiones basadas en tu progreso actual...
-
-{self.lucien.EMOJIS['diana']} *[Con expectativa]*
-
-"*Lucien está diseñando desafíos especiales para ti. Regresa pronto...*"
-            """.strip()
-
-            keyboard = [
-                [
-                    InlineKeyboardButton(
-                        "🔄 Generar misiones", callback_data="generate_missions"
-                    )
-                ],
-                [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
-            ]
-        else:
-            missions_text = []
-            for mission in active_missions[:3]:  # Mostrar máximo 3
-                progress = (
-                    f"{mission['progress']}/{mission['target']}"
-                    if mission["target"] > 1
-                    else "En progreso"
-                )
-                reward_text = (
-                    f"{mission['besitos_reward']} besitos"
-                    if mission["besitos_reward"] > 0
-                    else "Experiencia especial"
-                )
-
-                missions_text.append(
-                    f"""
-🎯 **{mission['title']}**
-📝 {mission['description']}
-📊 Progreso: {progress}
-🎁 Recompensa: {reward_text}
-                """.strip()
-                )
-
-            missions_message = f"""
-{self.lucien.EMOJIS['lucien']} **Misiones Activas**
-
-*[Con propósito]*
-
-Diana ha diseñado estos desafíos específicamente para ti, {user.first_name}:
-
-{chr(10).join(missions_text)}
-
-*[Con aliento]*
-
-Cada misión completada te acerca más a ganar la confianza de Diana...
-            """.strip()
-
-            keyboard = [
-                [
-                    InlineKeyboardButton(
-                        "📊 Ver todas las misiones", callback_data="all_missions"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "🏆 Historial de logros", callback_data="achievements"
-                    )
-                ],
-                [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
-            ]
-
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            missions_message, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    async def _show_games(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Dict
-    ) -> None:
-        """Muestra juegos ATRACTIVOS"""
-
-        games_message = f"""
-{self.lucien.EMOJIS['diana']} *Diana sonríe con interés*
-
-"*{user.first_name}, los juegos revelan la verdadera naturaleza de una persona...*"
-
-*[Con curiosidad]*
-
-"*Cada juego que juegas me dice algo sobre ti. Tu manera de pensar, de decidir, de crear... todo me fascina.*"
-
-{self.lucien.EMOJIS['lucien']} **Juegos de Evaluación**
-
-*[Con propósito]*
-
-Cada juego está diseñado para que Diana conozca mejor tu personalidad:
-
-🧩 **Acertijos** - Tu capacidad analítica
-🎭 **Asociación de palabras** - Tu creatividad
-🔍 **Reconocimiento de patrones** - Tu lógica
-💭 **Dilemas morales** - Tus valores
-⚡ **Decisiones rápidas** - Tu instinto
-🧠 **Desafíos de memoria** - Tu concentración
-✨ **Tests creativos** - Tu originalidad
-
-*[Con incentivo]*
-
-Los mejores resultados son... recompensados generosamente por Diana.
-        """.strip()
-
-        keyboard = [
-            [InlineKeyboardButton("🧩 Jugar Acertijo", callback_data="play_riddle")],
-            [
-                InlineKeyboardButton(
-                    "🎭 Asociación de Palabras", callback_data="play_word_game"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "⚡ Decisiones Rápidas", callback_data="play_quick_choice"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "📊 Ver mis estadísticas", callback_data="game_stats"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🏆 Ranking de jugadores", callback_data="game_leaderboard"
-                )
-            ],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            games_message, reply_markup=reply_markup, parse_mode="Markdown"
-        )
-
-    # === MÉTODOS AUXILIARES ===
-
-    def _get_progress_message(self, narrative_state: Any, first_name: str) -> str:
-        """Genera mensaje de progreso personalizado"""
-
-        level = narrative_state.current_level.value
-        trust = narrative_state.diana_trust_level
-
-        if narrative_state.has_divan_access:
-            return f"""
-*[Con admiración]*
-
-{first_name}, has logrado algo extraordinario. Diana te ha otorgado acceso a su círculo más íntimo.
-
-*[Con respeto]*
-
-Pocos llegan tan lejos en ganar su confianza...
-            """.strip()
-
-        elif trust >= 70:
-            return f"""
-*[Con expectativa]*
-
-{first_name}, Diana está claramente interesada en ti. Tus acciones no pasan desapercibidas.
-
-*[Con anticipación]*
-
-Estás muy cerca de algo... especial.
-            """.strip()
-
-        elif trust >= 40:
-            return f"""
-*[Con aprobación]*
-
-{first_name}, Diana ha comenzado a notarte. Tu dedicación está dando frutos.
-
-*[Con aliento]*
-
-Continúa así y pronto verás recompensas más... significativas.
-            """.strip()
-
-        else:
-            return f"""
-*[Con evaluación]*
-
-{first_name}, Diana está observando tus primeros pasos. Cada acción cuenta.
-
-*[Con orientación]*
-
-Demuestra dedicación y consistencia para ganar su atención.
-            """.strip()
-
-
-# Registrar handler
-callback_handler = CallbackQueryHandler(CallbackHandler().handle_callback)
-   
+        try:
+            await update.callback_query.edit_message_text(
+                error_message, 
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Error enviando mensaje de error: {e}")
+            

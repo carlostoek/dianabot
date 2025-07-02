@@ -12,6 +12,8 @@ class LorePiece(Base):
     title = Column(String(100), nullable=False)
     description = Column(String(255))
     rarity = Column(String(50))
+    combinable_with = Column(String(50))
+    combination_result = Column(String(50))
 
 class UserBackpack(Base):
     __tablename__ = "user_backpack"

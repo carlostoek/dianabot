@@ -83,6 +83,14 @@ class CallbackHandler:
         elif callback_data == "vip_exclusive_offers":
             await self._show_vip_exclusive_offers(update, context, user)
 
+        # === VIP FUNCTIONALITY ===
+        elif callback_data == "profile_vip":
+            await self._show_vip_profile(update, context)
+        elif callback_data == "explore_shop":
+            await self._show_shop(update, context)
+        elif callback_data == "premium_auctions":
+            await self._show_premium_auctions(update, context)
+
         # === FUNCTIONALITY ===
         elif callback_data == "missions":
             await self._show_missions(update, context, user, narrative_state)
@@ -555,6 +563,21 @@ Los mejores resultados son... recompensados generosamente por Diana.
         await update.callback_query.edit_message_text(
             games_message, reply_markup=reply_markup, parse_mode="Markdown"
         )
+
+    async def _show_vip_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra un mensaje de perfil VIP placeholder"""
+
+        await update.effective_message.reply_text("\u2694\ufe0f Perfil VIP (en desarrollo)")
+
+    async def _show_shop(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra un mensaje de tienda VIP placeholder"""
+
+        await update.effective_message.reply_text("\ud83d\udecd\ufe0f Tienda VIP (en desarrollo)")
+
+    async def _show_premium_auctions(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra un mensaje de subastas premium placeholder"""
+
+        await update.effective_message.reply_text("\ud83d\udd25 Subastas exclusivas (en desarrollo)")
 
     # === MÉTODOS AUXILIARES ===
 

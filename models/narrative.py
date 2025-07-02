@@ -1,40 +1,25 @@
-from sqlalchemy import Column, Integer, ForeignKey
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from config.database import Base as DBBase
 
-Base = declarative_base()
-Base = DBBase
-
+from database_init import Base
 
 class LorePiece(Base):
-    __tablename__ = "lore_pieces"
+    __tablename__ = 'lore_pieces'
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True)
+    code = Column(String(50), unique=True, nullable=False)
+    title = Column(String(100), nullable=False)
+    description = Column(String(255))
+    rarity = Column(String(50))
 
+class UserBackpack(Base):
+    __tablename__ = 'user_backpack'
 
-class UserLorePiece(Base):
-    __tablename__ = "user_lore_pieces"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    lore_piece_id = Column(Integer, ForeignKey('lore_pieces.id'), nullable=False)
+    obtained_at = Column(DateTime, default=datetime.utcnow)
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    lore_piece_id = Column(Integer, ForeignKey("lore_pieces.id"))
-
-    user = relationship("User", back_populates="lore_pieces")
-    lore_piece = relationship("LorePiece")
-
-
-class NarrativeProgress(Base):
-    __tablename__ = "narrative_progress"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-
-
-class LoreCombination(Base):
-    __tablename__ = "lore_combinations"
-
-    id = Column(Integer, primary_key=True, index=True)
-    piece_a_id = Column(Integer, ForeignKey("lore_pieces.id"))
-    piece_b_id = Column(Integer, ForeignKey("lore_pieces.id"))
-    result_piece_id = Column(Integer, ForeignKey("lore_pieces.id"))
+    user = relationship('User')
+    lore_piece = relationship('LorePiece')

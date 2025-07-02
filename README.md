@@ -152,4 +152,3 @@ Telegram: [@tu_usuario]
 
 Este proyecto se distribuye bajo la licencia MIT.
 Consulta el archivo LICENSE para más información.
-

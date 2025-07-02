@@ -27,9 +27,6 @@ class DianaBot:
         if not self.token:
             raise ValueError("TELEGRAM_BOT_TOKEN no encontrado en variables de entorno")
 
-        # Inicializar base de datos
-        init_db()
-
         # Crear aplicación
         self.application = Application.builder().token(self.token).build()
 
@@ -90,7 +87,12 @@ class DianaBot:
         )
 
 
-if __name__ == "__main__":
+def main():
+    init_db()
     bot = DianaBot()
     bot.run()
+
+
+if __name__ == "__main__":
+    main()
    

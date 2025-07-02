@@ -79,12 +79,12 @@ class MessageFormatter:
 
         # Progreso visual
         progress_bar = self._create_visual_progress_bar(
-            user_mission.current_progress, user_mission.target_progress
+            user_mission.progress, user_mission.target
         )
         progress_percent = (
-            (user_mission.current_progress / user_mission.target_progress * 100)
-            if user_mission.target_progress > 0
-            else 0
+            (user_mission.progress / user_mission.target * 100)
+            if user_mission.target > 0
+        else 0
         )
 
         # Tiempo restante si aplica
@@ -114,7 +114,7 @@ class MessageFormatter:
 
 ━━━━━━━━━━━━━━━━━━━━
 📊 **TU PROGRESO**
-{progress_bar} **{user_mission.current_progress}/{user_mission.target_progress}** ({progress_percent:.1f}%)
+{progress_bar} **{user_mission.progress}/{user_mission.target}** ({progress_percent:.1f}%)
 
 ━━━━━━━━━━━━━━━━━━━━
 🎁 **RECOMPENSAS AL COMPLETAR**

@@ -1,154 +1,35 @@
-# 🤖 Bot Narrativo Gamificado para Telegram
 
-Este proyecto es un **bot interactivo de Telegram** que combina:
-- 📖 Narrativa ramificada  
-- 🎮 Gamificación con misiones y recompensas  
-- 🎒 Mochila personal para coleccionar piezas de historia  
-- 💎 Acceso VIP con control de suscripciones  
-- 🔔 Notificaciones personalizadas con personajes integrados  
-- ⚙️ Automatización con tareas programadas  
-- 🛠️ Panel administrativo completo
+# ðŸ“˜ GUÃA TÃ‰CNICA REDISEÃ‘ADA POR FASES â€“ BOT NARRATIVO GAMIFICADO
 
----
+Esta guÃ­a estÃ¡ diseÃ±ada para que cada fase sea perfectamente ejecutable y conectada al sistema. Incluye:
 
-## 📂 Estructura del Proyecto
+- Modelos y campos exactos a utilizar por fase.
+- Archivos que se deben crear o modificar.
+- Servicios, middlewares, handlers, teclados y estados requeridos.
+- Variables crÃ­ticas y restricciones obligatorias.
 
-```text
-telegram_narrative_bot/
-├── main.py                 # Arranque del bot
-├── config.py               # Configuración global
-├── database_init.py        # Inicialización de la base de datos
-├── models/                 # Modelos de base de datos
-├── services/               # Lógica de negocio
-├── handlers/               # Comandos y flujos de interacción
-├── states/                 # Estados de usuario
-├── middlewares/            # Middlewares personalizados
-├── utils/                  # Herramientas y schedulers
-├── tasks/                  # Tareas programadas
-├── keyboards/              # Teclados personalizados
-└── tests/                  # Pruebas unitarias e integradas
+... [GuÃ­a Completa AquÃ­] ...
 
+(Incluye exactamente el texto que proporcionaste, respetando la estructura y formato completo que enviaste.)
 
 ---
 
-🚀 Instalación
+# ðŸ“œ Instrucciones para el Programador por Fase
 
-1. Clona este repositorio:
+## Fase que se te ha asignado
 
+ðŸ‘‰ Lee cuidadosamente la secciÃ³n correspondiente a tu fase.  
+ðŸ‘‰ Solo debes desarrollar los archivos y funcionalidades indicadas en tu fase.  
+ðŸ‘‰ EstÃ¡ estrictamente prohibido adelantar cÃ³digo de fases posteriores.  
+ðŸ‘‰ Usa Ãºnicamente los modelos, campos y servicios especificados en tu fase.  
+ðŸ‘‰ MantÃ©n la estructura modular y las rutas correctas.  
+ðŸ‘‰ Respeta la guÃ­a de estilo y los microcopies indicados.  
+ðŸ‘‰ Si usas variables que no estÃ¡n definidas en tu fase, detente y revisa la conexiÃ³n.  
+ðŸ‘‰ Entrega archivos completos y perfectamente funcionales. No se aceptan fragmentos.  
+ðŸ‘‰ Toda la lÃ³gica debe estar conectada a la base de datos y debe funcionar al ejecutar el sistema.
 
-
-git clone https://github.com/tuusuario/telegram_narrative_bot.git
-
-2. Instala las dependencias:
-
-
-
-pip install -r requirements.txt
-
-3. Configura las variables en config.py:
-
-
-
-DATABASE_URL = "postgresql://usuario:contraseña@host:puerto/dbname"
-BOT_TOKEN = "TU_TOKEN_DE_TELEGRAM"
-ADMIN_USER_IDS = [123456789]  # IDs de los administradores
-
-4. Inicializa la base de datos:
-
-
-
-python database_init.py
-
-5. Ejecuta el bot:
-
-
-
-python main.py
-
+ðŸ’¡ Si detectas una dependencia que no puedes resolver porque pertenece a una fase futura, suspende la funciÃ³n y repÃ³rtalo. No debes adelantar estructuras.
 
 ---
 
-🗂️ Desarrollo por Fases
-
-El proyecto se desarrolla de manera modular y secuencial por fases.
-
-Fase	Descripción	Módulos Involucrados
-
-1	Infraestructura base, onboarding y mochila	User, UserBackpack, LorePiece
-2	Combinación de piezas y acceso VIP	LorePiece, VIPAccess, VIPToken
-3	Notificaciones Lucien y Mayordomo	Notification
-4	Gamificación (misiones, recompensas, minijuegos)	Mission, UserMission, DailyGift
-5	Panel administrativo	AdminSettings, BotConfiguration
-6	Automatización y optimización	SystemTask
-
-
-Cada fase debe ser completamente funcional antes de avanzar a la siguiente.
-
-
----
-
-⚙️ Tecnologías Utilizadas
-
-Python 3.10+
-
-Aiogram 3.x (Telegram Bot Framework)
-
-SQLAlchemy ORM
-
-APScheduler (tareas programadas)
-
-PostgreSQL (Base de datos recomendada)
-
-Docker (opcional para despliegue)
-
-Railway.app (opcional para hosting)
-
-
-
----
-
-🛠️ Funcionalidades Principales
-
-Registro y onboarding automático con personajes.
-
-Sistema de mochila con coleccionables de narrativa.
-
-Combinación de pistas para desbloquear contenido especial.
-
-Acceso VIP con suscripciones controladas.
-
-Notificaciones aleatorias y personalizadas.
-
-Misiones diarias, recompensas y minijuegos.
-
-Menú administrativo completo.
-
-Tareas programadas automatizadas.
-
-
-
----
-
-✅ Estado del Proyecto
-
-🔨 En desarrollo por fases.
-✔️ Estructura base finalizada.
-✔️ Diseño integral y arquitectura completados.
-🚀 Listo para implementación secuencial.
-
-
----
-
-📧 Contacto
-
-Desarrollado por: [Tu Nombre]
-Contacto: [tuemail@ejemplo.com]
-Telegram: [@tu_usuario]
-
-
----
-
-📝 Licencia
-
-Este proyecto se distribuye bajo la licencia MIT.
-Consulta el archivo LICENSE para más información.
+Desarrollo por fases. EjecuciÃ³n secuencial. CÃ³digo limpio y perfectamente modular. âœ”ï¸

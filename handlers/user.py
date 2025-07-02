@@ -128,9 +128,9 @@ Has recibido **{daily_amount} besitos** 💋
 async def backpack_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /mochila - Mostrar mochila narrativa"""
     user = context.user_data["db_user"]
-    lore_pieces = user_service.get_user_lore_pieces(user.id)
+    lorepiece = user_service.get_user_lore_pieces(user.id)
 
-    if not lore_pieces:
+    if not lorepiece:
         await update.message.reply_text(
             "🎒 **Tu mochila está vacía**\n\n"
             "Completa misiones para obtener pistas de la historia!",
@@ -141,7 +141,7 @@ async def backpack_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     backpack_text = "🎒 **Tu Mochila Narrativa**\n\n"
 
-    for i, piece in enumerate(lore_pieces, 1):
+    for i, piece in enumerate(lorepiece, 1):
         backpack_text += f"📜 **{i}. {piece.title}**\n"
         backpack_text += f"_{piece.description}_\n\n"
 
@@ -151,7 +151,7 @@ async def backpack_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         backpack_text += "✨ **¡Puedes combinar pistas!**\n"
         backpack_text += "Usa el botón de abajo para descubrir secretos.\n"
 
-    keyboard = keyboards.backpack_keyboard(len(lore_pieces), bool(combinations))
+    keyboard = keyboards.backpack_keyboard(len(lorepiece), bool(combinations))
 
     await update.message.reply_text(
         backpack_text, reply_markup=keyboard, parse_mode="Markdown"
@@ -173,15 +173,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /trivia - Trivia rápida
 
 🎯 **Misiones:**
-/missions - Ver misiones disponibles
+/mission - Ver misiones disponibles
 
 🏆 **Subastas:**
-/auctions - Ver subastas VIP
+/auction - Ver subastas VIP
 
 👑 **Admin** (solo administradores):
 /admin - Panel de administración
 /addchannel - Agregar canal
-/users - Lista de usuarios
+/user - Lista de usuarios
 
 💡 **Tip:** ¡Reacciona a los mensajes para ganar besitos!
     """

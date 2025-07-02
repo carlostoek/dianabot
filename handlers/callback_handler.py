@@ -92,7 +92,7 @@ class CallbackHandler:
             await self._show_premium_auctions(update, context)
 
         # === FUNCTIONALITY ===
-        elif callback_data == "missions":
+        elif callback_data == "mission":
             await self._show_missions(update, context, user, narrative_state)
         elif callback_data == "games":
             await self._show_games(update, context, user)
@@ -389,7 +389,7 @@ Los miembros más dedicados han recibido contenido que... bueno, que Diana jamá
         """.strip()
 
         keyboard = [
-            [InlineKeyboardButton("🎯 Próximas misiones", callback_data="missions")],
+            [InlineKeyboardButton("🎯 Próximas misiones", callback_data="mission")],
             [InlineKeyboardButton("🎮 Mejorar con juegos", callback_data="games")],
             [
                 InlineKeyboardButton(

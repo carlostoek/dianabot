@@ -27,11 +27,11 @@ class UserKeyboards:
             "menu": "📋",
             # Acciones principales
             "play": "🎮",
-            "missions": "🎯",
+            "mission": "🎯",
             "bag": "🎒",
             "gift": "🎁",
             "shop": "🛒",
-            "auctions": "🏆",
+            "auction": "🏆",
             "profile": "👤",
             "stats": "📊",
             "help": "❓",
@@ -85,7 +85,7 @@ class UserKeyboards:
         buttons.append(
             [
                 InlineKeyboardButton(
-                    f"{self.EMOJIS['missions']} Misiones {self._get_missions_count_badge(user.id)}",
+                    f"{self.EMOJIS['mission']} Misiones {self._get_missions_count_badge(user.id)}",
                     callback_data="user_missions",
                 ),
                 InlineKeyboardButton(
@@ -112,7 +112,7 @@ class UserKeyboards:
         if user.is_vip or user.level >= 5:
             row_3.append(
                 InlineKeyboardButton(
-                    f"{self.EMOJIS['auctions']} Subastas VIP",
+                    f"{self.EMOJIS['auction']} Subastas VIP",
                     callback_data="user_auctions",
                 )
             )
@@ -589,7 +589,7 @@ class UserKeyboards:
             buttons.append(
                 [
                     InlineKeyboardButton(
-                        f"{self.EMOJIS['missions']} Completa Misiones para Pistas",
+                        f"{self.EMOJIS['mission']} Completa Misiones para Pistas",
                         callback_data="user_missions",
                     ),
                     InlineKeyboardButton(

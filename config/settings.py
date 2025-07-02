@@ -22,7 +22,7 @@ class Settings:
     # === BUSINESS LOGIC ===
     BESITOS_MULTIPLIERS = {"vip": 1.5, "divan": 2.0, "premium": 3.0}
 
-    DAILY_LIMITS = {"missions": 10, "games": 15, "auctions_participation": 5}
+    DAILY_LIMITS = {"mission": 10, "games": 15, "auctions_participation": 5}
 
     # === SOCIAL MEDIA ===
     SOCIAL_LINKS = {

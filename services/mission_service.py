@@ -446,7 +446,7 @@ class MissionService:
     ) -> List[Dict[str, Any]]:
         """Genera misiones diarias personalizadas"""
 
-        missions = []
+        mission = []
 
         # Misión básica diaria (siempre incluida)
         basic_mission = {
@@ -465,21 +465,21 @@ class MissionService:
             "rewards": {"besitos": 50, "experience": 25},
             "expires_at": datetime.utcnow() + timedelta(hours=24),
         }
-        missions.append(basic_mission)
+        mission.append(basic_mission)
 
         # Misión basada en nivel narrativo
         narrative_mission = self._get_narrative_daily_mission(
             narrative_state.current_level
         )
         if narrative_mission:
-            missions.append(narrative_mission)
+            mission.append(narrative_mission)
 
         # Misión basada en arquetipo
         archetype_mission = self._get_archetype_daily_mission(
             narrative_state.primary_archetype, user.level
         )
         if archetype_mission:
-            missions.append(archetype_mission)
+            mission.append(archetype_mission)
 
         # Misión de desafío (solo usuarios nivel 5+)
         if user.level >= 5:
@@ -487,9 +487,9 @@ class MissionService:
                 user.level, narrative_state.diana_trust_level
             )
             if challenge_mission:
-                missions.append(challenge_mission)
+                mission.append(challenge_mission)
 
-        return missions
+        return mission
 
     def _get_narrative_daily_mission(
         self, current_level: NarrativeLevel

@@ -708,7 +708,7 @@ class NarrativeTriggerService:
             "favorite_time_of_day": "evening",
             "avg_session_length_minutes": 15,
             "days_active_last_week": 0,
-            "most_used_feature": "missions",
+            "most_used_feature": "mission",
         }
 
     async def _calculate_mission_metrics(self, user_id: int) -> Dict[str, Any]:

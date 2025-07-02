@@ -27,13 +27,13 @@ Estos son los comandos principales para interactuar conmigo:
 **🎭 Comandos Básicos:**
 /start - Iniciar o regresar al menú principal
 /profile - Ver tu evaluación personal
-/missions - Tus misiones activas
+/mission - Tus misiones activas
 /games - Juegos de personalidad
 /help - Esta guía
 
 **💎 Comandos Avanzados:**
 /shop - Tienda exclusiva de Diana
-/auctions - Subastas de contenido premium
+/auction - Subastas de contenido premium
 /stats - Estadísticas detalladas
 
 {self.lucien.EMOJIS['diana']} *[Diana desde las sombras]*
@@ -92,7 +92,7 @@ Diana {self._get_diana_opinion(narrative_state.diana_trust_level)}
 
         keyboard = [
             [InlineKeyboardButton("📊 Ver perfil completo", callback_data="profile")],
-            [InlineKeyboardButton("🎯 Próximas misiones", callback_data="missions")],
+            [InlineKeyboardButton("🎯 Próximas misiones", callback_data="mission")],
             [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)

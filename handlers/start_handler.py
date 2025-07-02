@@ -270,7 +270,7 @@ Diana observa tus elecciones con... interés creciente.
             # ROW 1: Funciones básicas
             [
                 InlineKeyboardButton("👤 Mi Perfil", callback_data="profile"),
-                InlineKeyboardButton("🎯 Misiones", callback_data="missions"),
+                InlineKeyboardButton("🎯 Misiones", callback_data="mission"),
             ],
             # ROW 2: Entretenimiento
             [

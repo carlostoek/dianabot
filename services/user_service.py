@@ -495,7 +495,7 @@ class UserService:
         """Obtiene leaderboard de usuarios"""
 
         if category == "level":
-            users = (
+            user = (
                 self.db.query(User)
                 .filter(User.is_active == True)
                 .order_by(desc(User.level), desc(User.experience))
@@ -503,7 +503,7 @@ class UserService:
                 .all()
             )
         elif category == "besitos":
-            users = (
+            user = (
                 self.db.query(User)
                 .filter(User.is_active == True)
                 .order_by(desc(User.besitos))
@@ -511,7 +511,7 @@ class UserService:
                 .all()
             )
         elif category == "experience":
-            users = (
+            user = (
                 self.db.query(User)
                 .filter(User.is_active == True)
                 .order_by(desc(User.experience))
@@ -522,7 +522,7 @@ class UserService:
             return []
 
         leaderboard = []
-        for i, user in enumerate(users, 1):
+        for i, user in enumerate(user, 1):
             narrative_state = self.get_or_create_narrative_state(user.id)
             leaderboard.append(
                 {

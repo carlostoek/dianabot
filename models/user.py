@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    DateTime,
+    Boolean,
+    Text,
+    ForeignKey,
+)
 from sqlalchemy.orm import relationship
 from models.narrative import UserLorePiece
 from models.narrative_state import UserNarrativeState
@@ -11,7 +20,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, index=True)
     username = Column(String(100))
     first_name = Column(String(100))
     last_name = Column(String(100))

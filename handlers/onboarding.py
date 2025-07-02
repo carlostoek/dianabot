@@ -13,8 +13,8 @@ WELCOME_TEXT = (
     "Pulsa el botón para 'Abrir mi 👜 colección miserable'"
 )
 
-@router.message(commands=['start'])
-async def start(message: types.Message, state: FSMContext):
+@router.message(commands=["start"])
+async def start(message: types.Message, state: FSMContext) -> None:
     user = await user_service.get_or_create_user(
         telegram_id=message.from_user.id,
         username=message.from_user.username or "",
@@ -24,7 +24,7 @@ async def start(message: types.Message, state: FSMContext):
     await state.set_state(UserOnboarding.onboarding)
 
 @router.message(UserOnboarding.onboarding)
-async def finish_onboarding(message: types.Message, state: FSMContext):
+async def finish_onboarding(message: types.Message, state: FSMContext) -> None:
     user = await user_service.get_or_create_user(
         telegram_id=message.from_user.id,
         username=message.from_user.username or "",

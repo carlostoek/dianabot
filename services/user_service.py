@@ -1,15 +1,11 @@
 from sqlalchemy import select
-from sqlalchemy.exc import NoResultFound
 
-from database_init import async_session
+from database_init import get_session
 from models.core import User
 
 class UserService:
-    def __init__(self):
-        self.sessionmaker = async_session
-
     async def get_or_create_user(self, telegram_id: int, username: str, first_name: str) -> User:
-        async with self.sessionmaker() as session:
+        async for session in get_session():
             stmt = select(User).where(User.telegram_id == telegram_id)
             result = await session.execute(stmt)
             user = result.scalar_one_or_none()
@@ -20,8 +16,8 @@ class UserService:
                 await session.refresh(user)
             return user
 
-    async def mark_onboarded(self, user_id: int):
-        async with self.sessionmaker() as session:
+    async def mark_onboarded(self, user_id: int) -> None:
+        async for session in get_session():
             stmt = select(User).where(User.id == user_id)
             result = await session.execute(stmt)
             user = result.scalar_one()

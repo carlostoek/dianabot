@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship
 from models.narrative import UserLorePiece
 from models.narrative_state import UserNarrativeState
@@ -11,7 +11,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     username = Column(String(100))
     first_name = Column(String(100))
     last_name = Column(String(100))
@@ -25,6 +25,7 @@ class User(Base):
     is_vip = Column(Boolean, default=False)
     vip_expires = Column(DateTime, nullable=True)
     is_banned = Column(Boolean, default=False)
+    created_today = Column(Boolean, default=False)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

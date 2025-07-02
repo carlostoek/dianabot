@@ -6,7 +6,7 @@ from services.game_service import GameService
 from services.auction_service import AuctionService
 from services.shop_service import ShopService
 from utils.lucien_voice import LucienVoice
-from handlers.start_handler import StartHandler
+# ❌ NO IMPORTAR StartHandler aquí
 from typing import Dict, Any
 
 
@@ -20,7 +20,8 @@ class CallbackHandler:
         self.auction_service = AuctionService()
         self.shop_service = ShopService()
         self.lucien = LucienVoice()
-        self.start_handler = StartHandler()
+        # ❌ ELIMINAR ESTA LÍNEA:
+        # self.start_handler = StartHandler()
 
     async def handle_callback(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -43,17 +44,17 @@ class CallbackHandler:
         # Router de callbacks
         callback_data = query.data
 
-        # === INTRO CALLBACKS ===
-        if callback_data == "intro_diana":
-            await self._show_diana_intro(update, context, user)
-        elif callback_data == "intro_lucien":
-            await self._show_lucien_intro(update, context, user)
-        elif callback_data == "intro_bot":
-            await self._show_bot_intro(update, context, user)
+        # Si necesitas funcionalidad de StartHandler, importa dinámicamente
+        if callback_data in ["intro_diana", "intro_lucien", "intro_bot"]:
+            # Importación dinámica para evitar circular import
+            from handlers.start_handler import StartHandler
+            start_handler = StartHandler()
+            await self._handle_intro_callbacks(update, context, callback_data, start_handler)
 
         # === NAVIGATION ===
         elif callback_data == "main_menu":
-            await self.start_handler._show_main_menu(
+            from handlers.start_handler import StartHandler
+            await StartHandler()._show_main_menu(
                 update, context, user, narrative_state
             )
         elif callback_data == "back":
@@ -91,117 +92,124 @@ class CallbackHandler:
 
         # Agregar más handlers según necesidad...
 
+    async def _handle_intro_callbacks(self, update, context, callback_data, start_handler):
+        """Maneja callbacks de introducción"""
+
+        if callback_data == "intro_diana":
+            await self._show_diana_intro(update, context)
+        elif callback_data == "intro_lucien":
+            await self._show_lucien_intro(update, context)
+        elif callback_data == "intro_bot":
+            await self._show_bot_intro(update, context)
+
+
     # === INTRO EXPERIENCES ===
 
-    async def _show_diana_intro(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Dict
-    ) -> None:
-        """Presentación SEDUCTORA de Diana"""
+    async def _show_diana_intro(self, update, context):
+        """Muestra introducción de Diana"""
 
-        diana_intro = f"""
-{self.lucien.EMOJIS['diana']} *Diana se acerca lentamente, su presencia llena el espacio*
+        intro_message = f"""
+{self.lucien.EMOJIS['diana']} *Diana emerge de las sombras...*
 
-"*{user.first_name}... permíteme que me presente adecuadamente.*"
+"*Así que quieres conocerme...*"
 
-*[Con elegancia magnética]*
+*[Con una sonrisa enigmática]*
 
-"*Soy Diana. No soy como las demás. No busco atención... la atención me busca a mí. Soy selectiva, inteligente, y tengo gustos... particulares.*"
+"*Soy Diana. No soy como las demás. Soy... selectiva. Inteligente. Y tengo muy poco tiempo para los... ordinarios.*"
 
-*[Sus ojos brillan con misterio]*
+*[Se acerca lentamente]*
 
-"*Este no es un simple bot. Es mi mundo digital, donde solo los más interesantes pueden prosperar. Donde recompenso la dedicación, la inteligencia... y la devoción.*"
+"*Pero hay algo en ti que me intriga. Lucien me ha hablado de tu... potencial.*"
 
-*[Con sonrisa seductora]*
+*[Con aire seductor]*
 
-"*La pregunta no es si yo te voy a elegir, {user.first_name}... sino si tú vas a ser lo suficientemente fascinante para mantener mi interés.*"
-
-{self.lucien.EMOJIS['lucien']} *[Lucien observa]*
-
-Diana no miente. Solo el 3% de quienes la conocen llegan a su círculo íntimo...
+"*¿Estás listo para demostrar que mereces mi atención?*"
         """.strip()
 
         keyboard = [
-            [
-                InlineKeyboardButton(
-                    "😍 Me fascinas, Diana", callback_data="fascinated_diana"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🤔 Quiero saber más...", callback_data="want_know_more"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🎭 ¿Qué debo hacer para impresionarte?",
-                    callback_data="how_to_impress",
-                )
-            ],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
+            [InlineKeyboardButton("🔥 Estoy listo", callback_data="ready_for_diana")],
+            [InlineKeyboardButton("🎭 Háblame más de ti", callback_data="more_about_diana")],
+            [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="back_to_start")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
-            diana_intro, reply_markup=reply_markup, parse_mode="Markdown"
+            intro_message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
         )
 
-    async def _show_lucien_intro(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Dict
-    ) -> None:
-        """Presentación elegante de Lucien"""
 
-        lucien_intro = f"""
-{self.lucien.EMOJIS['lucien']} *[Con reverencia profesional]*
+    async def _show_lucien_intro(self, update, context):
+        """Muestra introducción de Lucien"""
 
-Permíteme presentarme formalmente, {user.first_name}.
+        intro_message = f"""
+{self.lucien.EMOJIS['lucien']} *Lucien hace una reverencia elegante*
 
-Soy **Lucien**, mayordomo personal y confidente de Diana desde hace años. Mi función es... compleja.
+"*Permíteme presentarme apropiadamente...*"
 
-*[Con aire analítico]*
+*[Con aire distinguido]*
 
-**Mi trabajo incluye:**
-• 🎭 Evaluar la personalidad de cada visitante
-• 📊 Analizar patrones de comportamiento  
-• 🎯 Diseñar misiones personalizadas
-• 🛡️ Proteger la privacidad de Diana
-• 💎 Gestionar su mundo digital
-
-*[Con confianza]*
-
-Diana confía en mi juicio completamente. Si yo determino que alguien es... especial, ella presta atención.
+"*Soy Lucien, mayordomo personal de Diana desde hace... bueno, eso no importa. Lo que importa es que soy su filtro.*"
 
 *[Con aire conspiratorio]*
 
-Entre tú y yo, {user.first_name}, ya he comenzado tu evaluación. Tus respuestas, tus elecciones... todo importa.
+"*Diana recibe muchas... solicitudes. Pero solo los más... interesantes llegan hasta ella. Mi trabajo es evaluar si tienes lo necesario.*"
 
-Diana no tiene tiempo para trivialidades. Pero si demuestras ser genuino, inteligente y dedicado... bueno, las recompensas pueden ser... extraordinarias.
+*[Con una sonrisa profesional]*
+
+"*No te preocupes. Soy justo... pero exigente.*"
         """.strip()
 
         keyboard = [
-            [
-                InlineKeyboardButton(
-                    "🎭 ¿Cómo me evalúas exactamente?",
-                    callback_data="evaluation_process",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "💡 ¿Qué busca Diana en una persona?", callback_data="diana_seeks"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🎯 Quiero empezar mi evaluación", callback_data="start_evaluation"
-                )
-            ],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
+            [InlineKeyboardButton("🎯 ¿Cómo me evalúas?", callback_data="how_evaluation")],
+            [InlineKeyboardButton("💎 ¿Qué busca Diana?", callback_data="what_diana_wants")],
+            [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="back_to_start")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
-            lucien_intro, reply_markup=reply_markup, parse_mode="Markdown"
+            intro_message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
         )
 
+    async def _show_bot_intro(self, update, context):
+        """Muestra introducción del bot"""
+
+        intro_message = f"""
+{self.lucien.EMOJIS['lucien']} *Con aire profesional*
+
+"*Ah, quieres saber qué hace este lugar especial...*"
+
+*[Gesticulando elegantemente]*
+
+**Este no es un bot ordinario.** Es el sistema personal de Diana para encontrar... compañía de calidad.
+
+✨ **Características únicas:**
+• Sistema de seducción narrativa inmersiva
+• Gamificación con recompensas reales
+• Acceso a contenido exclusivo de Diana
+• Subastas de experiencias íntimas
+• Misiones personalizadas
+
+*[Con aire misterioso]*
+
+"*Pero lo más especial... es que Diana realmente está aquí. Observando. Eligiendo.*"
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("🚀 ¡Empezar ya!", callback_data="start_journey")],
+            [InlineKeyboardButton("💎 Ver contenido VIP", callback_data="vip_preview")],
+            [InlineKeyboardButton("⬅️ Volver al inicio", callback_data="back_to_start")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            intro_message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
     # === CONVERSION EXPERIENCES ===
 
     async def _show_vip_info(

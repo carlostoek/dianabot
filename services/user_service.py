@@ -543,6 +543,18 @@ class UserService:
 
         return leaderboard
 
+    def get_user_detailed_stats(self, user_id: int) -> Dict[str, Any]:
+        """Devuelve estadísticas detalladas del usuario (dummy)."""
+
+        # Placeholder: datos simulados
+        return {"level": 1, "xp": 100, "missions_completed": 5}
+
+    def get_user_stats(self, user_id: int) -> Dict[str, Any]:
+        """Devuelve estadísticas básicas del usuario (dummy)."""
+
+        # Placeholder
+        return {"health": 100, "energy": 50}
+
     # ===== MÉTODOS AUXILIARES =====
 
     def _calculate_level_from_experience(self, experience: int) -> int:

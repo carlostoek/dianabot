@@ -89,9 +89,9 @@ class Channel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relaciones
-    memberships = relationship(
-        "ChannelMembership", back_populates="channel", cascade="all, delete-orphan"
-    )
+    # memberships = relationship(
+    #     "ChannelMembership", back_populates="channel", cascade="all, delete-orphan"
+    # )
     access_tokens = relationship(
         "ChannelAccessToken", back_populates="channel", cascade="all, delete-orphan"
     )

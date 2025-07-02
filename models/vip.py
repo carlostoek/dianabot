@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from database_init import Base
@@ -9,7 +9,7 @@ class VIPAccess(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    channel_id = Column(Integer, nullable=False)
+    channel_id = Column(BigInteger, nullable=False)
     access_granted = Column(DateTime, default=datetime.utcnow)
     access_expires = Column(DateTime)
     is_active = Column(Boolean, default=True)

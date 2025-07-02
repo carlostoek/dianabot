@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Enum as SQLEnum,
+    ForeignKey,  # ← AGREGADO
 )
 from sqlalchemy.orm import relationship
 from config.database import Base
@@ -17,10 +18,10 @@ from typing import Optional, Dict, Any
 
 
 class ChannelType(Enum):
-    FREE = "free"  # Canal gratuito (Los Kinkys)
-    VIP = "vip"  # Canal VIP (El Diván)
-    ADMIN = "admin"  # Canal administrativo
-    SPECIAL = "special"  # Canales especiales/temporales
+    FREE = "free"
+    VIP = "vip"
+    ADMIN = "admin"
+    SPECIAL = "special"
 
 
 class ChannelStatus(Enum):
@@ -37,20 +38,18 @@ class AccessTokenStatus(Enum):
 
 
 class MembershipStatus(Enum):
-    PENDING = "pending"  # Solicitud pendiente
-    APPROVED = "approved"  # Miembro activo
-    REJECTED = "rejected"  # Solicitud rechazada
-    BANNED = "banned"  # Usuario baneado
-    LEFT = "left"  # Usuario se fue voluntariamente
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    BANNED = "banned"
+    LEFT = "left"
 
 
 class Channel(Base):
     __tablename__ = "channels"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(
-        BigInteger, unique=True, index=True
-    )  # ID del canal en Telegram
+    telegram_id = Column(BigInteger, unique=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text)
     channel_type = Column(SQLEnum(ChannelType), nullable=False)
@@ -59,15 +58,13 @@ class Channel(Base):
     # Configuración de acceso
     requires_approval = Column(Boolean, default=True)
     auto_approval_enabled = Column(Boolean, default=False)
-    auto_approval_delay_minutes = Column(
-        Integer, default=30
-    )  # Tiempo para auto-aprobación
-    min_narrative_level = Column(String(50))  # Nivel mínimo requerido
+    auto_approval_delay_minutes = Column(Integer, default=30)
+    min_narrative_level = Column(String(50))
     vip_only = Column(Boolean, default=False)
 
     # Enlaces y tokens
-    public_invite_link = Column(String(500))  # Link público para solicitudes
-    admin_invite_link = Column(String(500))  # Link admin para bypass
+    public_invite_link = Column(String(500))
+    admin_invite_link = Column(String(500))
 
     # Configuración de moderación
     welcome_message = Column(Text)
@@ -81,19 +78,23 @@ class Channel(Base):
     daily_messages = Column(Integer, default=0)
 
     # Configuración adicional
-    settings = Column(JSON, default=dict)  # Configuraciones específicas
-    social_media_links = Column(JSON, default=dict)  # Links a redes sociales
+    settings = Column(JSON, default=dict)
+    social_media_links = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relaciones
-    # memberships = relationship(
-    #     "ChannelMembership", back_populates="channel", cascade="all, delete-orphan"
-    # )
+    # Relaciones ARREGLADAS
+    memberships = relationship(
+        "ChannelMembership", 
+        back_populates="channel", 
+        cascade="all, delete-orphan"
+    )
     access_tokens = relationship(
-        "ChannelAccessToken", back_populates="channel", cascade="all, delete-orphan"
+        "ChannelAccessToken", 
+        back_populates="channel", 
+        cascade="all, delete-orphan"
     )
 
 
@@ -101,8 +102,8 @@ class ChannelMembership(Base):
     __tablename__ = "channel_memberships"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(Integer, nullable=False, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=False, index=True)  # ← ARREGLADO
+    user_id = Column(Integer, nullable=False, index=True)  # Asumiendo que User existe
     telegram_user_id = Column(BigInteger, nullable=False, index=True)
 
     status = Column(SQLEnum(MembershipStatus), default=MembershipStatus.PENDING)
@@ -110,7 +111,7 @@ class ChannelMembership(Base):
     # Información de solicitud
     requested_at = Column(DateTime, default=datetime.utcnow)
     approved_at = Column(DateTime)
-    approved_by_user_id = Column(Integer)  # Admin que aprobó
+    approved_by_user_id = Column(Integer)
     rejection_reason = Column(Text)
 
     # Actividad del miembro
@@ -120,17 +121,17 @@ class ChannelMembership(Base):
     warnings_count = Column(Integer, default=0)
 
     # Método de ingreso
-    joined_via = Column(String(50))  # "manual", "token", "auto_approval", etc.
-    access_token_used = Column(String(100))  # Token usado si aplica
+    joined_via = Column(String(50))
+    access_token_used = Column(String(100))
 
     # Datos adicionales
-    join_metadata = Column(JSON, default=dict)  # Info del contexto de ingreso
+    join_metadata = Column(JSON, default=dict)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relaciones
+    # Relaciones ARREGLADAS
     channel = relationship("Channel", back_populates="memberships")
 
 
@@ -138,51 +139,52 @@ class ChannelAccessToken(Base):
     __tablename__ = "channel_access_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(Integer, nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=False, index=True)  # ← ARREGLADO
     token = Column(String(100), unique=True, index=True)
 
     # Configuración del token
-    created_by_user_id = Column(Integer, nullable=False)  # Admin que lo creó
-    max_uses = Column(Integer, default=1)  # Número máximo de usos
+    created_by_user_id = Column(Integer, nullable=False)
+    max_uses = Column(Integer, default=1)
     current_uses = Column(Integer, default=0)
     expires_at = Column(DateTime)
 
     status = Column(SQLEnum(AccessTokenStatus), default=AccessTokenStatus.ACTIVE)
 
     # Información adicional
-    description = Column(String(200))  # Descripción del propósito
-    target_user_name = Column(String(100))  # Si es para usuario específico
+    description = Column(String(200))
+    target_user_name = Column(String(100))
 
     # Uso del token
-    used_by_user_ids = Column(JSON, default=list)  # Lista de usuarios que lo usaron
-    usage_log = Column(JSON, default=list)  # Log de usos
+    used_by_user_ids = Column(JSON, default=list)
+    usage_log = Column(JSON, default=list)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relaciones
+    # Relaciones ARREGLADAS
     channel = relationship("Channel", back_populates="access_tokens")
 
 
+# Resto de clases sin cambios...
 class ChannelMessage(Base):
     __tablename__ = "channel_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(Integer, nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=False, index=True)  # ← ARREGLADO
     user_id = Column(Integer, nullable=False, index=True)
     telegram_message_id = Column(BigInteger, nullable=False)
     telegram_user_id = Column(BigInteger, nullable=False)
 
     # Contenido del mensaje
-    message_type = Column(String(50), default="text")  # text, photo, video, etc.
+    message_type = Column(String(50), default="text")
     content = Column(Text)
     media_url = Column(String(500))
 
     # Análisis automático
     is_spam = Column(Boolean, default=False)
     spam_score = Column(Integer, default=0)
-    sentiment_score = Column(Integer, default=0)  # -100 a 100
+    sentiment_score = Column(Integer, default=0)
     engagement_score = Column(Integer, default=0)
 
     # Moderación
@@ -208,7 +210,7 @@ class ChannelAnalytics(Base):
     __tablename__ = "channel_analytics"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(Integer, nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=False, index=True)  # ← ARREGLADO
     date = Column(DateTime, nullable=False, index=True)
 
     # Métricas de membresía
@@ -219,7 +221,7 @@ class ChannelAnalytics(Base):
 
     # Métricas de actividad
     total_messages = Column(Integer, default=0)
-    active_users = Column(Integer, default=0)  # Usuarios que enviaron mensajes
+    active_users = Column(Integer, default=0)
     avg_messages_per_user = Column(Integer, default=0)
 
     # Métricas de engagement
@@ -232,15 +234,15 @@ class ChannelAnalytics(Base):
     messages_deleted = Column(Integer, default=0)
     warnings_issued = Column(Integer, default=0)
 
-    # Métricas de conversión (para canal gratuito)
+    # Métricas de conversión
     users_promoted_to_vip = Column(Integer, default=0)
     purchases_made = Column(Integer, default=0)
 
     # Datos adicionales
-    top_users = Column(JSON, default=list)  # Top usuarios activos del día
-    popular_topics = Column(JSON, default=list)  # Temas más mencionados
+    top_users = Column(JSON, default=list)
+    popular_topics = Column(JSON, default=list)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-   
+    

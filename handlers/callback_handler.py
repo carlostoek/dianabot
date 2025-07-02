@@ -37,7 +37,7 @@ class CallbackHandler:
             "last_name": query.from_user.last_name,
         }
 
-        user = self.user_service.create_or_update_user(user_data)
+        user = self.user_service.get_or_create_user(user_data)
         narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
 
         # Router de callbacks

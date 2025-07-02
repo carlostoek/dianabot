@@ -23,7 +23,7 @@ class TestCoreServices:
 
     def test_user_creation(self):
         """Test creación de usuario"""
-        user = self.user_service.create_or_update_user(self.test_user_data)
+        user = self.user_service.get_or_create_user(self.test_user_data)
 
         assert user["first_name"] == "Test"
         assert user["telegram_id"] == 123456789
@@ -31,7 +31,7 @@ class TestCoreServices:
 
     def test_narrative_progression(self):
         """Test progresión narrativa"""
-        user = self.user_service.create_or_update_user(self.test_user_data)
+        user = self.user_service.get_or_create_user(self.test_user_data)
         narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
 
         assert narrative_state.current_level is not None
@@ -39,7 +39,7 @@ class TestCoreServices:
 
     def test_mission_generation(self):
         """Test generación de misiones"""
-        user = self.user_service.create_or_update_user(self.test_user_data)
+        user = self.user_service.get_or_create_user(self.test_user_data)
         missions = self.mission_service.generate_personalized_missions(user["id"])
 
         assert len(missions) > 0
@@ -47,7 +47,7 @@ class TestCoreServices:
 
     def test_game_session(self):
         """Test sesión de juego"""
-        user = self.user_service.create_or_update_user(self.test_user_data)
+        user = self.user_service.get_or_create_user(self.test_user_data)
 
         from models.game import GameType, GameDifficulty
 

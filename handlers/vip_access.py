@@ -1,4 +1,5 @@
 from aiogram import Router, types
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from services.vip_service import VIPService
@@ -8,7 +9,7 @@ from states.user_states import AwaitingVIPValidation
 router = Router()
 vip_service = VIPService()
 
-@router.message(commands=["vip"])
+@router.message(Command("vip"))
 @onboarding_required
 async def request_vip(message: types.Message, state: FSMContext, user):
     await message.answer("Ingresa tu 🔑 código VIP:")

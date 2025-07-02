@@ -1,4 +1,5 @@
 from aiogram import Router, types
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from services.combination_service import CombinationService
@@ -13,7 +14,7 @@ WELCOME_TEXT = (
     "Pulsa 'Intentar combinar estas 🧹 piezas rotas' cuando estés listo."
 )
 
-@router.message(commands=["combinar", "combine"])
+@router.message(Command(commands=["combinar", "combine"]))
 @onboarding_required
 async def start_combination(message: types.Message, state: FSMContext, user):
     await message.answer(WELCOME_TEXT)

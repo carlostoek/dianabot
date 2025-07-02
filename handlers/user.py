@@ -17,7 +17,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
     # Registrar o actualizar usuario
-    db_user = user_service.get_or_create_user(
+    db_user = user_service.create_or_update_user(
         telegram_id=user.id,
         username=user.username,
         first_name=user.first_name,

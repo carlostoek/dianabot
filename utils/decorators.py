@@ -26,7 +26,7 @@ def user_required(func: Callable) -> Callable:
             return
 
         # Obtener o crear usuario
-        db_user = user_service.get_or_create_user(
+        db_user = user_service.create_or_update_user(
             telegram_id=telegram_user.id,
             username=telegram_user.username,
             first_name=telegram_user.first_name,

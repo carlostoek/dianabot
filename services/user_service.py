@@ -24,7 +24,7 @@ class UserService:
 
     # ===== GESTIÓN DE USUARIOS =====
 
-    def get_or_create_user(
+    def create_or_update_user(
         self,
         telegram_id: int,
         first_name: str,

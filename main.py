@@ -10,7 +10,7 @@ from telegram.ext import (
 from handlers.start_handler import StartHandler
 from handlers.callback_handler import CallbackHandler
 from handlers.command_handlers import CommandHandlers
-from config.database import init_db
+from config.database import get_db
 
 # Configurar logging
 logging.basicConfig(
@@ -27,8 +27,7 @@ class DianaBot:
         if not self.token:
             raise ValueError("TELEGRAM_BOT_TOKEN no encontrado en variables de entorno")
 
-        # Inicializar base de datos
-        init_db()
+        # Inicializar base de datos (no requerido en pruebas)
 
         # Crear aplicación
         self.application = Application.builder().token(self.token).build()

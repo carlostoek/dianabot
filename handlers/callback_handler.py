@@ -62,8 +62,6 @@ class CallbackHandler:
         # === PROFILE ===
         elif callback_data == "profile":
             await self._show_profile(update, context, user, narrative_state)
-        elif callback_data == "profile_vip":
-            await self._show_vip_profile(update, context, user, narrative_state)
 
         # === CONVERSION FOCUSED ===
         elif callback_data == "premium_info":
@@ -78,8 +76,6 @@ class CallbackHandler:
             await self._show_special_offer(update, context, user)
 
         # === VIP UPSELLS ===
-        elif callback_data == "premium_auctions":
-            await self._show_premium_auctions(update, context, user)
         elif callback_data == "intimate_collection":
             await self._show_intimate_collection(update, context, user)
         elif callback_data == "custom_experiences":
@@ -92,8 +88,6 @@ class CallbackHandler:
             await self._show_missions(update, context, user, narrative_state)
         elif callback_data == "games":
             await self._show_games(update, context, user)
-        elif callback_data == "shop":
-            await self._show_shop(update, context, user)
 
         # Agregar más handlers según necesidad...
 

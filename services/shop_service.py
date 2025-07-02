@@ -1,6 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
-from models.shop import ShopItem, ShopCategory, ShopPurchase, ShopItemType, ShopRarity
+from models.shop import (
+    ShopItem,
+    ShopCategory,
+    ShopPurchase,
+    ShopItemType,
+    ShopRarity,
+)
 from models.user import User
 from models.narrative_state import UserNarrativeState, NarrativeLevel
 from config.database import get_db

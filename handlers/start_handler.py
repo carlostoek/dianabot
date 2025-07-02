@@ -610,4 +610,4 @@ Demuestra dedicación y consistencia para ganar su atención.
 
 
 # Registrar handler
-callback_handler = CallbackQueryHandler(CallbackHandler().handle_callback)
+

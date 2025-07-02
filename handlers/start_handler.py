@@ -35,7 +35,7 @@ class StartHandler:
                 return
 
         # Crear o obtener usuario
-        user = self.user_service.create_or_update_user(user_data)
+        user = self.user_service.get_or_create_user(user_data)
         narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
 
         # Verificar si es usuario nuevo o returning
@@ -150,7 +150,7 @@ Tu progreso no ha pasado desapercibido. Cada interacción, cada decisión... tod
         """Maneja tokens VIP con experiencia especial"""
 
         # Crear usuario si no existe
-        user = self.user_service.create_or_update_user(user_data)
+        user = self.user_service.get_or_create_user(user_data)
 
         # Validar token
         token_result = self.channel_service.validate_and_use_vip_token(

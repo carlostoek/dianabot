@@ -5,7 +5,7 @@ from telegram import (
     KeyboardButton,
 )
 from models.user import User
-from models.mission import Mission, UserMission, MissionStatus
+from models.mission import Mission, UserMission
 from models.auction import Auction
 from typing import List, Optional, Dict, Any
 
@@ -147,12 +147,8 @@ class UserKeyboards:
         buttons = []
 
         # Filtrar y organizar misiones
-        active_missions = [
-            um for um in user_missions if um.status == MissionStatus.ACTIVE
-        ]
-        completed_missions = [
-            um for um in user_missions if um.status == MissionStatus.COMPLETED
-        ]
+        active_missions = [um for um in user_missions if not um.is_completed]
+        completed_missions = [um for um in user_missions if um.is_completed]
 
         if not show_completed:
             # Mostrar misiones activas con progreso visual

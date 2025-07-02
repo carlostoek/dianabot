@@ -51,11 +51,11 @@ class AuctionService:
             .filter(
                 and_(
                     Auction.status == AuctionStatus.ACTIVE,
-                    Auction.start_time <= datetime.utcnow(),
-                    Auction.end_time > datetime.utcnow(),
+                    Auction.starts_at <= datetime.utcnow(),
+                    Auction.ends_at > datetime.utcnow(),
                 )
             )
-            .order_by(desc(Auction.priority), Auction.end_time)
+            .order_by(desc(Auction.priority), Auction.ends_at)
             .all()
         )
 
@@ -118,7 +118,7 @@ class AuctionService:
             "auction": self._format_auction_for_user(auction, user, narrative_state),
             "bids": self._format_bids_for_display(bids),
             "user_bid": self._format_user_bid(user_bid) if user_bid else None,
-            "time_remaining": self._calculate_time_remaining(auction.end_time),
+            "time_remaining": self._calculate_time_remaining(auction.ends_at),
             "can_bid": self._can_user_bid(auction, user, narrative_state),
             "recommended_bid": self._calculate_recommended_bid(auction, user_bid),
         }
@@ -221,8 +221,8 @@ class AuctionService:
             starting_bid=auction_config.get("starting_bid", 100),
             current_highest_bid=auction_config.get("starting_bid", 100),
             reserve_price=auction_config.get("reserve_price"),
-            start_time=auction_config.get("start_time", datetime.utcnow()),
-            end_time=auction_config["end_time"],
+            starts_at=auction_config.get("starts_at", datetime.utcnow()),
+            ends_at=auction_config["ends_at"],
             access_level=auction_config.get("access_level", "kinky"),
             min_user_level=auction_config.get("min_user_level", 1),
             vip_only=auction_config.get("vip_only", False),
@@ -392,7 +392,7 @@ class AuctionService:
 
         auction_config = {
             "starting_bid": 500,  # Pujas más altas para VIP
-            "end_time": datetime.utcnow() + timedelta(hours=48),
+            "ends_at": datetime.utcnow() + timedelta(hours=48),
             "access_level": "divan",
             "vip_only": True,
             "min_user_level": 10,
@@ -600,10 +600,10 @@ class AuctionService:
                 "current_bidder": current_bidder_info,
             },
             "timing": {
-                "start_time": auction.start_time.isoformat(),
-                "end_time": auction.end_time.isoformat(),
-                "time_remaining": self._calculate_time_remaining(auction.end_time),
-                "is_ending_soon": self._is_auction_ending_soon(auction.end_time),
+                "starts_at": auction.starts_at.isoformat(),
+                "ends_at": auction.ends_at.isoformat(),
+                "time_remaining": self._calculate_time_remaining(auction.ends_at),
+                "is_ending_soon": self._is_auction_ending_soon(auction.ends_at),
             },
             "access": {
                 "level": auction.access_level,
@@ -745,7 +745,7 @@ Diana observa con interés. Mantienes la delantera... por ahora.
 Diana valora tu participación. La competencia hace las cosas más... interesantes.
             """.strip()
 
-        time_remaining = self._calculate_time_remaining(auction.end_time)
+        time_remaining = self._calculate_time_remaining(auction.ends_at)
         timing_message = f"""
 
 ⏰ **Tiempo restante:** {time_remaining}
@@ -802,14 +802,14 @@ El contenido exclusivo ha sido entregado a tu colección privada.
 **Felicidades. Has obtenido algo que Diana reserva solo para los más... devotos.**
         """.strip()
 
-    def _calculate_time_remaining(self, end_time: datetime) -> str:
+    def _calculate_time_remaining(self, ends_at: datetime) -> str:
         """Calcula tiempo restante de subasta"""
 
         now = datetime.utcnow()
-        if end_time <= now:
+        if ends_at <= now:
             return "Finalizada"
 
-        remaining = end_time - now
+        remaining = ends_at - now
         days = remaining.days
         hours, remainder = divmod(remaining.seconds, 3600)
         minutes, _ = divmod(remainder, 60)
@@ -821,9 +821,9 @@ El contenido exclusivo ha sido entregado a tu colección privada.
         else:
             return f"{minutes}m"
 
-    def _is_auction_ending_soon(self, end_time: datetime) -> bool:
+    def _is_auction_ending_soon(self, ends_at: datetime) -> bool:
         """Verifica si la subasta está por terminar"""
-        return (end_time - datetime.utcnow()).total_seconds() < 3600  # Menos de 1 hora
+        return (ends_at - datetime.utcnow()).total_seconds() < 3600  # Menos de 1 hora
 
     def _can_user_bid(
         self, auction: Auction, user: User, narrative_state: UserNarrativeState
@@ -836,7 +836,7 @@ El contenido exclusivo ha sido entregado a tu colección privada.
 
         # Verificar tiempo
         now = datetime.utcnow()
-        if not (auction.start_time <= now <= auction.end_time):
+        if not (auction.starts_at <= now <= auction.ends_at):
             return False
 
         # Verificar acceso
@@ -867,7 +867,7 @@ El contenido exclusivo ha sido entregado a tu colección privada.
         if auction.status != AuctionStatus.ACTIVE:
             return {"valid": False, "message": "Subasta no está activa"}
 
-        if datetime.utcnow() > auction.end_time:
+        if datetime.utcnow() > auction.ends_at:
             return {"valid": False, "message": "Subasta ha finalizado"}
 
         if amount <= auction.current_highest_bid:
@@ -953,7 +953,7 @@ El contenido exclusivo ha sido entregado a tu colección privada.
 
                 auction_config = {
                     "starting_bid": 200,
-                    "end_time": datetime.utcnow() + timedelta(hours=24),
+                    "ends_at": datetime.utcnow() + timedelta(hours=24),
                     "priority": 150,
                     "diana_mood": "grateful",
                 }

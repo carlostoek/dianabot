@@ -68,7 +68,6 @@ class UserService:
                 level=1,
                 besitos=0,
                 experience=0,
-                is_active=True,
                 last_activity=datetime.utcnow(),
             )
             self.db.add(user)

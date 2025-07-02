@@ -38,7 +38,7 @@ class CallbackHandler:
         }
 
         user = self.user_service.get_or_create_user(user_data)
-        narrative_state = self.user_service.get_or_create_narrative_state(user["id"])
+        narrative_state = self.user_service.get_or_create_narrative_state(user.id)
 
         # Router de callbacks
         callback_data = query.data
@@ -101,7 +101,7 @@ class CallbackHandler:
         diana_intro = f"""
 {self.lucien.EMOJIS['diana']} *Diana se acerca lentamente, su presencia llena el espacio*
 
-"*{user['first_name']}... permíteme que me presente adecuadamente.*"
+"*{user.first_name}... permíteme que me presente adecuadamente.*"
 
 *[Con elegancia magnética]*
 
@@ -113,7 +113,7 @@ class CallbackHandler:
 
 *[Con sonrisa seductora]*
 
-"*La pregunta no es si yo te voy a elegir, {user['first_name']}... sino si tú vas a ser lo suficientemente fascinante para mantener mi interés.*"
+"*La pregunta no es si yo te voy a elegir, {user.first_name}... sino si tú vas a ser lo suficientemente fascinante para mantener mi interés.*"
 
 {self.lucien.EMOJIS['lucien']} *[Lucien observa]*
 
@@ -153,7 +153,7 @@ Diana no miente. Solo el 3% de quienes la conocen llegan a su círculo íntimo..
         lucien_intro = f"""
 {self.lucien.EMOJIS['lucien']} *[Con reverencia profesional]*
 
-Permíteme presentarme formalmente, {user['first_name']}.
+Permíteme presentarme formalmente, {user.first_name}.
 
 Soy **Lucien**, mayordomo personal y confidente de Diana desde hace años. Mi función es... compleja.
 
@@ -172,7 +172,7 @@ Diana confía en mi juicio completamente. Si yo determino que alguien es... espe
 
 *[Con aire conspiratorio]*
 
-Entre tú y yo, {user['first_name']}, ya he comenzado tu evaluación. Tus respuestas, tus elecciones... todo importa.
+Entre tú y yo, {user.first_name}, ya he comenzado tu evaluación. Tus respuestas, tus elecciones... todo importa.
 
 Diana no tiene tiempo para trivialidades. Pero si demuestras ser genuino, inteligente y dedicado... bueno, las recompensas pueden ser... extraordinarias.
         """.strip()
@@ -212,7 +212,7 @@ Diana no tiene tiempo para trivialidades. Pero si demuestras ser genuino, inteli
         vip_info = f"""
 {self.lucien.EMOJIS['diana']} *Diana aparece con exclusividad*
 
-"*{user['first_name']}... quieres saber sobre mi círculo íntimo.*"
+"*{user.first_name}... quieres saber sobre mi círculo íntimo.*"
 
 *[Con aire misterioso]*
 
@@ -239,7 +239,7 @@ El acceso al Diván no se compra... se **gana**. Diana evalúa:
 
 *[Con intensidad]*
 
-Diana está observando tu comportamiento ahora mismo, {user['first_name']}. ¿Serás digno de su atención íntima?
+Diana está observando tu comportamiento ahora mismo, {user.first_name}. ¿Serás digno de su atención íntima?
         """.strip()
 
         keyboard = [
@@ -280,7 +280,7 @@ Diana está observando tu comportamiento ahora mismo, {user['first_name']}. ¿Se
         premium_info = f"""
 {self.lucien.EMOJIS['diana']} *Diana se acerca con misterio*
 
-"*{user['first_name']}... te interesa mi contenido más... íntimo.*"
+"*{user.first_name}... te interesa mi contenido más... íntimo.*"
 
 *[Con sonrisa seductora]*
 
@@ -351,15 +351,15 @@ Los miembros más dedicados han recibido contenido que... bueno, que Diana jamá
         """Perfil básico ATRACTIVO"""
 
         # Obtener estadísticas del usuario
-        user_stats = self.user_service.get_user_detailed_stats(user["id"])
+        user_stats = self.user_service.get_user_detailed_stats(user.id)
 
         # Mensaje personalizado según progreso
         progress_message = self._get_progress_message(
-            narrative_state, user["first_name"]
+            narrative_state, user.first_name
         )
 
         profile_message = f"""
-{self.lucien.EMOJIS['lucien']} **Evaluación Personal de {user['first_name']}**
+{self.lucien.EMOJIS['lucien']} **Evaluación Personal de {user.first_name}**
 
 {progress_message}
 
@@ -377,7 +377,7 @@ Los miembros más dedicados han recibido contenido que... bueno, que Diana jamá
 
 {self.lucien.EMOJIS['diana']} *[Diana observa]*
 
-"*{user['first_name']} está... progresando. Pero aún hay mucho camino por recorrer.*"
+"*{user.first_name} está... progresando. Pero aún hay mucho camino por recorrer.*"
         """.strip()
 
         keyboard = [
@@ -413,7 +413,7 @@ Los miembros más dedicados han recibido contenido que... bueno, que Diana jamá
         """Muestra misiones con MOTIVACIÓN"""
 
         # Obtener misiones activas
-        active_missions = self.mission_service.get_user_active_missions(user["id"])
+        active_missions = self.mission_service.get_user_active_missions(user.id)
 
         if not active_missions:
             missions_message = f"""
@@ -421,7 +421,7 @@ Los miembros más dedicados han recibido contenido que... bueno, que Diana jamá
 
 *[Con eficiencia]*
 
-{user['first_name']}, estoy preparando nuevas misiones basadas en tu progreso actual...
+{user.first_name}, estoy preparando nuevas misiones basadas en tu progreso actual...
 
 {self.lucien.EMOJIS['diana']} *[Con expectativa]*
 
@@ -464,7 +464,7 @@ Los miembros más dedicados han recibido contenido que... bueno, que Diana jamá
 
 *[Con propósito]*
 
-Diana ha diseñado estos desafíos específicamente para ti, {user['first_name']}:
+Diana ha diseñado estos desafíos específicamente para ti, {user.first_name}:
 
 {chr(10).join(missions_text)}
 
@@ -501,7 +501,7 @@ Cada misión completada te acerca más a ganar la confianza de Diana...
         games_message = f"""
 {self.lucien.EMOJIS['diana']} *Diana sonríe con interés*
 
-"*{user['first_name']}, los juegos revelan la verdadera naturaleza de una persona...*"
+"*{user.first_name}, los juegos revelan la verdadera naturaleza de una persona...*"
 
 *[Con curiosidad]*
 
@@ -579,4 +579,35 @@ Pocos llegan tan lejos en ganar su confianza...
             return f"""
 *[Con expectativa]*
 
-{first_name}, Diana está
+{first_name}, Diana está claramente interesada en ti. Tus acciones no pasan desapercibidas.
+
+*[Con anticipación]*
+
+Estás muy cerca de algo... especial.
+            """.strip()
+
+        elif trust >= 40:
+            return f"""
+*[Con aprobación]*
+
+{first_name}, Diana ha comenzado a notarte. Tu dedicación está dando frutos.
+
+*[Con aliento]*
+
+Continúa así y pronto verás recompensas más... significativas.
+            """.strip()
+
+        else:
+            return f"""
+*[Con evaluación]*
+
+{first_name}, Diana está observando tus primeros pasos. Cada acción cuenta.
+
+*[Con orientación]*
+
+Demuestra dedicación y consistencia para ganar su atención.
+            """.strip()
+
+
+# Registrar handler
+callback_handler = CallbackQueryHandler(CallbackHandler().handle_callback)

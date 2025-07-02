@@ -6,12 +6,13 @@ from sqlalchemy import (
     Boolean,
     Text,
     ForeignKey,
-    Enum,
+    Enum as SQLEnum,
 )
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from config.database import Base
 import enum
+from enum import Enum
 
 
 class MissionType(enum.Enum):
@@ -21,10 +22,10 @@ class MissionType(enum.Enum):
     NARRATIVE = "narrative"
 
 
-class MissionDifficulty(enum.Enum):
-    EASY = "easy"
-    MEDIUM = "medium"
-    HARD = "hard"
+class MissionDifficulty(Enum):
+    EASY = 1
+    MEDIUM = 2
+    HARD = 3
 
 
 class MissionStatus(enum.Enum):
@@ -40,7 +41,7 @@ class Mission(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200))
     description = Column(Text)
-    mission_type = Column(Enum(MissionType))
+    mission_type = Column(SQLEnum(MissionType))
 
     # Configuración
     reward_besitos = Column(Integer, default=25)

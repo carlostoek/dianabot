@@ -94,7 +94,7 @@ class Channel(Base):
         "ChannelMembership",
         back_populates="channel",
         cascade="all, delete-orphan",
-        foreign_keys="[ChannelMembership.channel_id]",
+        foreign_keys="ChannelMembership.channel_id",
     )
     access_tokens = relationship(
         "ChannelAccessToken", back_populates="channel", cascade="all, delete-orphan"

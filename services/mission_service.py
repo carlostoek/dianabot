@@ -120,6 +120,12 @@ class MissionService:
 
         return created_missions
 
+    def generate_personalized_missions(self, user_id: int) -> List[Dict[str, Any]]:
+        """Genera misiones personalizadas para el usuario (dummy)."""
+
+        # Placeholder: Devuelve lista vacía
+        return []
+
     def check_mission_completion(
         self, mission_id: int, user_action: Dict[str, Any] = None
     ) -> Dict[str, Any]:

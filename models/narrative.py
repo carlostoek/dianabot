@@ -1,6 +1,10 @@
 from sqlalchemy import Column, Integer, ForeignKey
 from sqlalchemy.orm import relationship
-from config.database import Base
+from sqlalchemy.ext.declarative import declarative_base
+from config.database import Base as DBBase
+
+Base = declarative_base()
+Base = DBBase
 
 
 class LorePiece(Base):

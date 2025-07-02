@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Enum as SQLEnum,
+    ForeignKey,
 )
 from sqlalchemy.orm import relationship
 from config.database import Base
@@ -90,7 +91,10 @@ class Channel(Base):
 
     # Relaciones
     memberships = relationship(
-        "ChannelMembership", back_populates="channel", cascade="all, delete-orphan"
+        "ChannelMembership",
+        back_populates="channel",
+        cascade="all, delete-orphan",
+        foreign_keys="[ChannelMembership.channel_id]",
     )
     access_tokens = relationship(
         "ChannelAccessToken", back_populates="channel", cascade="all, delete-orphan"
@@ -101,7 +105,7 @@ class ChannelMembership(Base):
     __tablename__ = "channel_memberships"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(Integer, nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=False, index=True)
     user_id = Column(Integer, nullable=False, index=True)
     telegram_user_id = Column(BigInteger, nullable=False, index=True)
 
@@ -138,7 +142,7 @@ class ChannelAccessToken(Base):
     __tablename__ = "channel_access_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    channel_id = Column(Integer, nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=False, index=True)
     token = Column(String(100), unique=True, index=True)
 
     # Configuración del token

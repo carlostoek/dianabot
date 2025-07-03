@@ -90,13 +90,34 @@ class CallbackHandlerNarrative:
             stats["active_users_week"] = await self.user_service.get_active_users_count()
             stats["new_users_today"] = await self.user_service.get_new_users_today_count()
             stats["new_users_week"] = await self.user_service.get_new_users_week_count()
-            stats["missions_completed"] = await self.mission_service.get_completed_missions_count()
+
+            missions_method = getattr(
+                self.mission_service, "get_completed_missions_count", None
+            )
+            stats["missions_completed"] = (
+                await missions_method() if missions_method else 0
+            )
+
             stats["avg_level"] = await self.user_service.get_average_level()
             stats["advanced_users"] = await self.user_service.get_advanced_users_count()
-            stats["active_channels"] = await self.channel_service.get_active_channels_count()
-            stats["notifications_sent"] = await self.notification_service.get_sent_notifications_count()
+
+            channels_method = getattr(
+                self.channel_service, "get_active_channels_count", None
+            )
+            stats["active_channels"] = (
+                await channels_method() if channels_method else 0
+            )
+
+            notifications_method = getattr(
+                self.notification_service, "get_sent_notifications_count", None
+            )
+            stats["notifications_sent"] = (
+                await notifications_method() if notifications_method else 0
+            )
+
             return stats
-        except Exception:
+        except Exception as e:
+            print(f"Error getting analytics: {e}")
             return {}
 
     async def handle_divan_access(

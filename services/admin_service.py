@@ -365,27 +365,27 @@ class AdminService:
             "action_breakdown": {action_type: count for action_type, count in action_types}
         }
 
-        def get_admin_actions_log(
-        self, 
-        telegram_id: int = None, 
+    def get_admin_actions_log(
+        self,
+        telegram_id: int = None,
         action_type: str = None,
         days: int = 30,
         limit: int = 100
     ) -> List[AdminAction]:
         """Obtiene log de acciones de administradores"""
-        
+
         query = self.db.query(AdminAction)
-        
+
         if telegram_id:
             query = query.filter(AdminAction.admin_telegram_id == telegram_id)
-        
+
         if action_type:
             query = query.filter(AdminAction.action_type == action_type)
-        
+
         if days:
             since_date = datetime.utcnow() - timedelta(days=days)
             query = query.filter(AdminAction.created_at >= since_date)
-        
+
         return query.order_by(desc(AdminAction.created_at)).limit(limit).all()
 
     # ===== MÉTODOS AUXILIARES =====

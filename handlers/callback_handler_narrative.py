@@ -329,9 +329,9 @@ Estaré aquí cuando estés listo para dar ese paso.""",
             "reward_type": "patience_acknowledged"
         }
 
-        def _get_refusal_response(self, first_name: str) -> Dict[str, str]:
+    def _get_refusal_response(self, first_name: str) -> Dict[str, str]:
         """Respuesta cuando el usuario se niega a reaccionar"""
-        
+
         return {
             "diana_message": f"""
 {self.lucien.EMOJIS['diana']} *[Con decepción sutil]*
@@ -345,7 +345,7 @@ Interesante. A veces la resistencia dice más que la obediencia.
 *[Con paciencia enigmática]*
 
 Pero recuerda... algunas puertas solo se abren una vez.""",
-            
+
             "lucien_comment": f"""
 {self.lucien.EMOJIS['lucien']} *[Con sarcasmo palpable]*
 

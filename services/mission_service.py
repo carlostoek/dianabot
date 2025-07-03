@@ -181,6 +181,44 @@ class MissionService:
             print(f"Error getting completed missions count: {e}")
             return 0
 
+    async def get_user_completed_missions(self, telegram_id: int) -> List[dict]:
+        """Devuelve lista de misiones completadas del usuario"""
+        try:
+            user = (
+                self.db.query(User)
+                .filter(User.telegram_id == telegram_id)
+                .first()
+            )
+            if not user:
+                return []
+
+            missions = (
+                self.db.query(Mission)
+                .filter(
+                    Mission.user_id == user.id,
+                    Mission.status == MissionStatus.COMPLETED,
+                )
+                .order_by(Mission.created_at.desc())
+                .all()
+            )
+
+            results = []
+            for m in missions:
+                results.append(
+                    {
+                        "id": m.id,
+                        "title": m.title,
+                        "completed_date": m.created_at.strftime("%d/%m/%Y"),
+                        "reward_xp": getattr(m, "reward_experience", 0),
+                        "reward_besitos": m.reward_besitos,
+                    }
+                )
+
+            return results
+        except Exception as e:
+            print(f"Error getting user completed missions: {e}")
+            return []
+
     async def generate_personalized_missions(self, user_id: int):
         """Genera misiones personalizadas para el usuario"""
         try:

@@ -224,7 +224,7 @@ class MissionService:
         try:
             from services.user_service import UserService
             user_service = UserService()
-            user = await user_service.get_user_by_telegram_id(user_id)
+            user = user_service.get_user_by_telegram_id(user_id)
             if not user:
                 return []
 

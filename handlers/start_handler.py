@@ -97,7 +97,7 @@ class StartHandler:
             is_admin = False
             if self.admin_service:
                 try:
-                    admin = self.admin_service.get_admin_by_user_id(user.telegram_id)
+                    admin = await self.admin_service.get_admin_by_user_id(user.telegram_id)
                     is_admin = admin and admin.is_active
                     logger.info(f"🔍 Es administrador: {is_admin}")
                 except Exception as e:

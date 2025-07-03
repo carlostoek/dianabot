@@ -480,37 +480,75 @@ Diana {self._get_diana_opinion(trust_level)}
             logger.error(f"❌ Error en create_first_admin_command: {e}", exc_info=True)
             await update.message.reply_text("❌ Error interno creando primer administrador.")
 
-    async def admin_panel_command(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
+    async def handle_admin_panel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comando /admin_panel - Acceso directo al panel de administración"""
+        user_id = update.effective_user.id
 
         try:
-            admin_service = AdminService()
-            user_telegram_id = update.effective_user.id
-
-            if not admin_service.is_admin(user_telegram_id):
+            # Verificar permisos de admin
+            admin = await self.admin_service.get_admin_by_user_id(user_id)
+            if not admin or not admin.is_active:
                 await update.message.reply_text(
-                    f"🚫 **Acceso Denegado**\n\n"
-                    f"Este comando es solo para administradores.",
-                    parse_mode="Markdown",
+                    "❌ *Acceso Denegado*\n\n"
+                    "No tienes permisos de administrador.\n"
+                    "Contacta a un super administrador si crees que esto es un error.",
+                    parse_mode='Markdown'
                 )
                 return
 
-            # Simular callback para mostrar panel de admin
-            admin = admin_service.get_admin(user_telegram_id)
+            # Mostrar panel de administración
+            keyboard = [
+                [InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")],
+                [InlineKeyboardButton("📊 Analytics Detallado", callback_data="admin_detailed_analytics")],
+                [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
+            ]
 
-            panel_message = (
-                "👑 *Panel de Administración*\n\n"
-                "1. Generar Token VIP\n"
-                "2. Gestionar Administradores\n"
-                "3. Ver Logs de Acciones\n"
-                "4. Configuración del Sistema\n"
-                "5. Salir"
+            # Solo super admins ven estas opciones
+            if admin.role == "super_admin":
+                keyboard.extend([
+                    [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_pending_requests")],
+                    [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
+                    [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")]
+                ])
+
+            # Agregar menú completo de administración
+            keyboard.extend([
+                [
+                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels"),
+                    InlineKeyboardButton("🎯 Misiones", callback_data="admin_missions")
+                ],
+                [
+                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions"),
+                    InlineKeyboardButton("🎮 Juegos", callback_data="admin_games")
+                ],
+                [
+                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore"),
+                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config")
+                ],
+                [
+                    InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_notifications"),
+                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
+                ]
+            ])
+
+            keyboard.append([InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")])
+
+            panel_text = (
+                f"🏛️ *Panel de Administración*\n\n"
+                f"Bienvenido/a al Diván, {admin.name}\n"
+                f"Rol: {admin.role.title()}\n"
+                f"Nivel de acceso: {'Completo' if admin.role == 'super_admin' else 'Estándar'}\n\n"
+                f"Selecciona una opción:"
             )
 
-            await update.message.reply_text(panel_message, parse_mode="Markdown")
+            await update.message.reply_text(
+                panel_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
 
         except Exception as e:
-            logger.error(f"❌ Error en admin_panel_command: {e}", exc_info=True)
-            await update.message.reply_text("❌ Error accediendo al panel de administración.")
+            await update.message.reply_text(
+                f"❌ Error al acceder al panel: {str(e)}",
+                parse_mode='Markdown'
+            )

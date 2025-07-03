@@ -951,6 +951,13 @@ class CallbackHandlerNarrative:
                 'math_answer_3': self.handle_math_answer,
                 'backpack_view_clues': self.handle_backpack_view_clues,
                 'backpack_progress': self.handle_backpack_progress,
+                # Callbacks faltantes
+                'user_profile': self.handle_user_profile,
+                'user_main_menu': self.handle_user_main_menu,
+                'backpack_categories': self.handle_backpack_categories,
+                'backpack_combine': self.handle_backpack_combine,
+                'category_communication': self.handle_category_communication,
+                'back_to_menu': self.handle_back_to_menu,
             }
 
             if callback_data in routing:
@@ -1482,116 +1489,61 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
 
     # === MENÚS PRINCIPALES CON NARRATIVA ===
 
-    async def _show_main_menu_narrative(
-        self,
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
-        user: Any,
-        narrative_state: Any,
-    ) -> None:
-        """Menú principal con detección de administradores"""
-
+    async def _show_main_menu_narrative(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra el menú principal narrativo - CORREGIDO"""
         try:
-            first_name = getattr(user, "first_name", "Usuario")
-            user_telegram_id = update.effective_user.id
+            user_id = update.callback_query.from_user.id
+            user = self.user_service.get_user_by_telegram_id(user_id)
 
-            # Verificar si es administrador
-            is_admin = self.admin_service.is_admin(user_telegram_id)
-            admin_level = None
+            if not user:
+                await self._send_error_message(update, context, "Usuario no encontrado")
+                return
 
-            if is_admin:
-                admin = self.admin_service.get_admin(user_telegram_id)
-                admin_level = admin.admin_level.value if admin else None
-
-            # Detectar progreso narrativo actual
-            current_level = getattr(narrative_state, "current_level", "newcomer")
-
-            # Mensaje adaptativo según admin/usuario
-            if is_admin:
-                menu_message = f"""
-{self.lucien.EMOJIS['lucien']} *[Con reverencia especial]*
-
-"*{first_name}... mi estimado administrador.*"
-
-👑 **Panel Principal - Administrador {admin_level.title()}**
-
-*[Con aire conspirativo]*
-
-Diana me ha informado de tu... autoridad especial. 
-
-*[Con respeto profesional]*
-
-¿Deseas gestionar el reino o disfrutar como usuario?
-                """.strip()
-            else:
-                # Mensaje normal para usuarios
-                if current_level == "newcomer":
-                    menu_message = f"""
-{self.lucien.EMOJIS['lucien']} *[Con aire de recepcionista sarcástico]*
-
-"*Oh, {first_name}... de vuelta al lobby. Qué... predecible.*"
-
-*[Con eficiencia profesional]*
-
-Diana está observando tu... progreso. O la falta de él.
-
-¿Qué intentarás ahora?
-                    """.strip()
-                else:
-                    menu_message = f"""
-{self.lucien.EMOJIS['lucien']} *[Con reconocimiento reluctante]*
-
-"*{first_name}... has progresado más de lo que esperaba.*"
-
-*[Con aire conspirativo]*
-
-Diana ha estado... comentando sobre ti. Eso es... unusual.
-
-¿Continuamos con tu desarrollo personal?
-                    """.strip()
-
-            # Botones adaptativos según admin/usuario
-            keyboard = []
-
-            if is_admin:
-                # Opciones de administrador en la parte superior
-                keyboard.extend(
-                    [
-                        [InlineKeyboardButton("👑 Panel de Administración", callback_data="admin_panel")],
-                        [InlineKeyboardButton("🎫 Generar Token VIP", callback_data="generate_vip_token")],
-                        [InlineKeyboardButton("📊 Ver Analytics", callback_data="admin_analytics")],
-                        [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━", callback_data="separator")],
-                    ]
-                )
-
-            # Opciones estándar para todos los usuarios
-            keyboard.extend(
-                [
-                    [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
-                    [InlineKeyboardButton("🎭 Continuar Historia", callback_data="continue_story")],
-                    [InlineKeyboardButton("🎯 Mis Misiones", callback_data="missions")],
-                ]
+            main_menu_text = (
+                f"🎭 *DianaBot - Menu Principal*\n\n"
+                f"*Lucien te recibe con elegancia...*\n\n"
+                f"Ah, {user.first_name}! Diana me comento que podrias venir.\n\n"
+                f"📊 **Tu estado actual:**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Besitos: {user.besitos}\n"
+                f"• Estado: {'👑 VIP' if user.is_vip else '🌟 Miembro'}\n\n"
+                f"¿Que deseas hacer?"
             )
 
-            # Opciones adicionales según nivel narrativo
-            if hasattr(narrative_state, "has_divan_access") and narrative_state.has_divan_access:
-                keyboard.append([InlineKeyboardButton("💎 Acceso al Diván", callback_data="divan_access")])
-            else:
-                keyboard.append([InlineKeyboardButton("🔥 Contenido Premium", callback_data="premium")])
+            keyboard = [
+                [
+                    InlineKeyboardButton("👤 Mi Perfil", callback_data="user_profile"),
+                    InlineKeyboardButton("🎯 Misiones", callback_data="user_missions")
+                ],
+                [
+                    InlineKeyboardButton("🎮 Juegos", callback_data="user_games"),
+                    InlineKeyboardButton("🎒 Mochila", callback_data="user_backpack")
+                ],
+                [
+                    InlineKeyboardButton("🎁 Regalo Diario", callback_data="user_daily_gift"),
+                    InlineKeyboardButton("🏆 Ranking", callback_data="user_leaderboard")
+                ]
+            ]
 
-            keyboard.append([InlineKeyboardButton("⚙️ Configuración", callback_data="settings")])
+            try:
+                admin = await self.admin_service.get_admin_by_user_id(user_id)
+                if admin and admin.is_active:
+                    keyboard.append([InlineKeyboardButton("🏛️ Panel de Administración", callback_data="divan_access")])
+            except:
+                pass
 
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            if user.is_vip or user.level >= 5:
+                keyboard.append([InlineKeyboardButton("🏆 Subastas VIP", callback_data="user_auctions")])
 
             await update.callback_query.edit_message_text(
-                menu_message,
-                reply_markup=reply_markup,
-                parse_mode="Markdown",
+                main_menu_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
         except Exception as e:
-            logger.error(f"❌ Error en _show_main_menu_narrative: {e}", exc_info=True)
-            await self._send_error_message_narrative(update)
+            logger.error(f"❌ Error en _show_main_menu_narrative: {e}")
+            await self._send_error_message(update, context, f"Error al cargar menu principal: {str(e)}")
 
     async def _show_profile_narrative(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
         """Perfil con contexto narrativo"""
@@ -2240,7 +2192,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -2448,7 +2400,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
     async def _generate_trivia_question(self, user_id: int) -> dict:
         """Genera pregunta de trivia personalizada"""
         try:
-            await self.user_service.get_user_by_telegram_id(user_id)
+            self.user_service.get_user_by_telegram_id(user_id)
 
             questions_bank = [
                 {
@@ -2490,7 +2442,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
     async def _generate_math_problem(self, user_id: int) -> dict:
         """Genera problema matemático personalizado"""
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
 
             import random
 
@@ -2583,7 +2535,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await query.answer()
 
             is_correct = answer_index == current_trivia['correct']
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
 
             if is_correct:
                 user.experience += current_trivia['reward_xp']
@@ -2651,7 +2603,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await query.answer()
 
             is_correct = answer_index == math_game['correct']
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
 
             if is_correct:
                 user.experience += math_game['reward_xp']
@@ -2724,7 +2676,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -2882,7 +2834,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -3012,13 +2964,52 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar combinaciones: {str(e)}")
 
+    async def handle_category_communication(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra pistas de la categoría Comunicación"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            category_text = (
+                f"💬 *Categoria: Comunicacion*\n\n"
+                f"🎯 **El Arte de la Conversacion**\n\n"
+                f"Aqui encontraras secretos sobre:\n"
+                f"• Tecnicas de conversacion\n"
+                f"• Lenguaje corporal\n"
+                f"• Escucha activa\n"
+                f"• Creacion de conexion\n\n"
+                f"📋 **Tus pistas de comunicacion:**\n"
+                f"• Aun no tienes pistas en esta categoria\n\n"
+                f"💡 **Consejo:**\n"
+                f"Completa misiones relacionadas con comunicacion para desbloquear pistas."
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("🔍 Buscar Pistas", callback_data="search_communication_clues")],
+                [InlineKeyboardButton("📚 Guia de Comunicacion", callback_data="communication_guide")],
+                [InlineKeyboardButton("🔙 Volver a Categorias", callback_data="backpack_categories")]
+            ]
+
+            await query.edit_message_text(
+                category_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar categoria: {str(e)}")
+
+    async def handle_back_to_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Regresa al menú principal"""
+        await self.handle_user_main_menu(update, context)
+
     async def handle_user_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Menú de misiones del usuario"""
         query = update.callback_query
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -3072,7 +3063,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -3122,7 +3113,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -3162,7 +3153,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
 
             if not lore_pieces:
@@ -3206,7 +3197,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
 
             progress_text = (
@@ -3244,12 +3235,12 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
 
-            gift_info = await self.user_service.calculate_daily_gift(user_id)
+            gift_info = self.user_service.calculate_daily_gift(user_id)
 
             if gift_info["can_claim"]:
                 keyboard = [
@@ -3299,7 +3290,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await query.answer("🎁 Procesando regalo...")
 
             # Calcular regalo antes de otorgarlo
-            gift_info = await self.user_service.calculate_daily_gift(user_id)
+            gift_info = self.user_service.calculate_daily_gift(user_id)
 
             if not gift_info.get("can_claim", False):
                 await self._send_error_message(update, context, "No puedes reclamar el regalo en este momento")
@@ -3310,7 +3301,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
 
             if success:
                 # Obtener información actualizada del usuario
-                user = await self.user_service.get_user_by_telegram_id(user_id)
+                user = self.user_service.get_user_by_telegram_id(user_id)
 
                 success_text = (
                     f"🎉 *¡Regalo Reclamado!*\n\n"
@@ -3365,7 +3356,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
@@ -3416,7 +3407,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         user_id = query.from_user.id
 
         try:
-            user = await self.user_service.get_user_by_telegram_id(user_id)
+            user = self.user_service.get_user_by_telegram_id(user_id)
             if not user:
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return

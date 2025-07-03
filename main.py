@@ -109,7 +109,7 @@ class DianaBot:
             CommandHandler("create_first_admin", command_handlers.create_first_admin_command)
         )
         self.application.add_handler(
-            CommandHandler("admin_panel", command_handlers.admin_panel_command)
+            CommandHandler("admin_panel", command_handlers.handle_admin_panel)
         )
         self.application.add_handler(
             CommandHandler("generate_vip_token", generate_vip_token)

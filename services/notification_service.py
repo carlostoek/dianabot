@@ -786,4 +786,14 @@ Has ganado la subasta:
 
         self.db.commit()
         return deleted
+
+    def get_all_vip_users(self) -> List[User]:
+        """Devuelve todos los usuarios con VIP activo."""
+
+        now = datetime.utcnow()
+        return (
+            self.db.query(User)
+            .filter(User.is_vip == True, User.vip_expires.is_not(None), User.vip_expires > now)
+            .all()
+        )
    

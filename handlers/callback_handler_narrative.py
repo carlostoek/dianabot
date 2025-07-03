@@ -12,7 +12,7 @@ from services.admin_service import AdminService
 from models.admin import AdminPermission, AdminLevel
 from utils.decorators import admin_required, super_admin_only, admin_only
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from datetime import datetime, timedelta
 import io
 import csv
@@ -2719,7 +2719,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
     # === CALLBACKS DE USUARIO ===
 
     async def handle_user_main_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Menú principal del usuario"""
+        """Menú principal dinámico basado en rol de usuario"""
         query = update.callback_query
         user_id = query.from_user.id
 
@@ -2729,22 +2729,104 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
 
-            # Verificar si es admin
-            is_admin = False
+            user_role = self._determine_user_role(user)
+
+            if not hasattr(self, "menu_service"):
+                from services.menu_service import MenuService
+
+                self.menu_service = MenuService()
+
+            menu_config = self.menu_service.get_menu_for_user(
+                f"main_menu_{user_role}", user_role, user.level
+            )
+
+            if menu_config:
+                main_menu_text = self._build_dynamic_menu_text(menu_config, user, user_role)
+                keyboard = self._build_dynamic_keyboard(menu_config["buttons"])
+            else:
+                main_menu_text, keyboard = self._build_static_menu(user, user_role)
+
+            # Verificar si es admin para añadir acceso al Diván
             try:
                 admin = self.admin_service.get_admin_by_user_id(user_id)
                 is_admin = admin and admin.is_active
             except Exception:
-                pass
+                is_admin = False
 
-            main_menu_text = (
+            if is_admin:
+                keyboard.append([InlineKeyboardButton("🏛️ Panel de Administración", callback_data="divan_access")])
+
+            await query.edit_message_text(
+                main_menu_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar menú principal: {str(e)}")
+
+    def _determine_user_role(self, user) -> str:
+        """Determina el rol del usuario"""
+        return "vip" if getattr(user, "is_vip", False) else "free"
+
+    def _build_dynamic_menu_text(self, menu_config: Dict, user, user_role: str) -> str:
+        """Construye texto del menú dinámicamente"""
+        base_text = menu_config["title"] + "\n\n" + menu_config["description"] + "\n\n"
+
+        if user_role == "free":
+            base_text += (
+                f"📊 **Tu estado (Usuario Gratuito):**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Besitos: {user.besitos}\n"
+                f"• Acceso: 🌟 Básico\n\n"
+                f"💡 *¡Únete al canal VIP para desbloquear todo el potencial!*\n\n"
+                f"¿Qué deseas hacer?"
+            )
+        else:
+            base_text += (
+                f"📊 **Tu estado VIP:**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Besitos: {user.besitos}\n"
+                f"• Acceso: 👑 VIP Premium\n\n"
+                f"✨ *Disfruta de todas las funciones exclusivas*\n\n"
+                f"¿Qué deseas hacer?"
+            )
+
+        return base_text
+
+    def _build_dynamic_keyboard(self, buttons_config: List[Dict]) -> List[List]:
+        """Construye teclado dinámicamente"""
+        keyboard: List[List] = []
+        current_row: List = []
+        last_row = -1
+
+        for button in buttons_config:
+            if button["row"] != last_row:
+                if current_row:
+                    keyboard.append(current_row)
+                current_row = []
+                last_row = button["row"]
+
+            current_row.append(
+                InlineKeyboardButton(button["text"], callback_data=button["callback_data"])
+            )
+
+        if current_row:
+            keyboard.append(current_row)
+
+        return keyboard
+
+    def _build_static_menu(self, user, user_role: str) -> tuple:
+        """Menú estático como fallback"""
+        if user_role == "free":
+            text = (
                 f"🎭 *DianaBot - Menú Principal*\n\n"
                 f"*Lucien te recibe con elegancia...*\n\n"
                 f"\"¡Ah, {user.first_name}! Diana me comentó que podrías venir.\"\n\n"
                 f"📊 **Tu estado actual:**\n"
                 f"• Nivel: {user.level}\n"
                 f"• Besitos: {user.besitos}\n"
-                f"• Estado: {'👑 VIP' if user.is_vip else '🌟 Miembro'}\n\n"
+                f"• Estado: 🌟 Miembro\n\n"
                 f"¿Qué deseas hacer?"
             )
 
@@ -2765,18 +2847,34 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
 
             if user.is_vip or user.level >= 5:
                 keyboard.append([InlineKeyboardButton("🏆 Subastas VIP", callback_data="user_auctions")])
-
-            if is_admin:
-                keyboard.append([InlineKeyboardButton("🏛️ Panel de Administración", callback_data="divan_access")])
-
-            await query.edit_message_text(
-                main_menu_text,
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
+        else:
+            text = (
+                f"🎭 *DianaBot - Menú VIP*\n\n"
+                f"*Lucien hace una reverencia elegante...*\n\n"
+                f"\"¡Ah, {user.first_name}! Diana me comentó que vendrías.\"\n\n"
+                f"📊 **Tu estado VIP:**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Besitos: {user.besitos}\n"
+                f"• Estado: 👑 VIP\n\n"
+                f"¿Qué deseas hacer?"
             )
 
-        except Exception as e:
-            await self._send_error_message(update, context, f"Error al cargar menú principal: {str(e)}")
+            keyboard = [
+                [
+                    InlineKeyboardButton("👤 Mi Perfil VIP", callback_data="user_profile_vip"),
+                    InlineKeyboardButton("🎯 Misiones Premium", callback_data="user_missions_vip"),
+                ],
+                [
+                    InlineKeyboardButton("🎮 Juegos Completos", callback_data="user_games"),
+                    InlineKeyboardButton("🎒 Mochila Narrativa", callback_data="user_backpack"),
+                ],
+                [
+                    InlineKeyboardButton("🏆 Subastas VIP", callback_data="user_auctions"),
+                    InlineKeyboardButton("🏆 Ranking", callback_data="user_leaderboard"),
+                ],
+            ]
+
+        return text, keyboard
 
     async def handle_user_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Muestra el perfil completo del usuario"""

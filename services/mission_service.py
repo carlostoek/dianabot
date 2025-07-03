@@ -23,6 +23,11 @@ class MissionService:
 
     # ===== GESTIÓN DE MISIONES =====
 
+    def get_all_users(self) -> List[User]:
+        """Devuelve la lista completa de usuarios."""
+
+        return self.db.query(User).all()
+
     def get_user_missions(
         self, user_id: int, status: Optional[MissionStatus] = None
     ) -> List[Mission]:

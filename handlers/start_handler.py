@@ -90,14 +90,14 @@ class StartHandler:
 
             # Crear o obtener usuario
             logger.info("🔍 Creando/obteniendo usuario...")
-            user = await self.user_service.get_or_create_user(user_data)
+            user = self.user_service.get_or_create_user(user_data)
             logger.info(f"✅ Usuario obtenido: {user}")
 
             # Verificar si es administrador
             is_admin = False
             if self.admin_service:
                 try:
-                    admin = await self.admin_service.get_admin_by_user_id(user.telegram_id)
+                    admin = self.admin_service.get_admin_by_user_id(user.telegram_id)
                     is_admin = admin and admin.is_active
                     logger.info(f"🔍 Es administrador: {is_admin}")
                 except Exception as e:
@@ -267,6 +267,29 @@ Dice que tienes potencial para algo... especial."
             logger.error(f"❌ Error en _send_returning_user_experience: {e}", exc_info=True)
             await self._send_simple_error(update)
 
+    async def _send_simple_error(self, update: Update) -> None:
+        """Envía mensaje de error simple"""
+        try:
+            if update and update.message:
+                error_message = """🎭 *Error Técnico*
+
+*Lucien se disculpa elegantemente...*
+
+"Mis disculpas, ha ocurrido un inconveniente técnico. Diana no estará complacida..."
+
+Por favor intenta de nuevo con /start"""
+
+                keyboard = [[InlineKeyboardButton("🔄 Reintentar", callback_data="user_main_menu")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                await update.message.reply_text(
+                    error_message,
+                    reply_markup=reply_markup,
+                    parse_mode="Markdown"
+                )
+        except Exception as e:
+            logger.error(f"❌ Error enviando mensaje de error: {e}")
+
     async def _handle_vip_token(
         self,
         update: Update,
@@ -280,15 +303,15 @@ Dice que tienes potencial para algo... especial."
         
         try:
             # Crear/obtener usuario primero
-            user = await self.user_service.get_or_create_user(user_data)
+            user = self.user_service.get_or_create_user(user_data)
             
             # Validar token VIP
             if self.channel_service:
-                is_valid = await self.channel_service.validate_vip_token(token)
+                is_valid = self.channel_service.validate_vip_token(token)
                 
                 if is_valid:
                     # Activar VIP
-                    success = await self.channel_service.activate_vip_membership(user.telegram_id, token)
+                    success = self.channel_service.activate_vip_membership(user.telegram_id, token)
                     
                     if success:
                         vip_message = f"""🎭 *¡Token VIP Activado!*

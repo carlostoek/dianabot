@@ -22,7 +22,7 @@ class InteractionPattern(Enum):
     RETURNING_SLOW = "returning_slow"   # Regresa después de días
     FIRST_TIME = "first_time"         # Primera interacción
 
-class LucienVoiceEnhanced:
+class LucienVoice:
     """Sistema de narrativa inmersiva con personalidad sarcástica y elegante"""
 
     def __init__(self):

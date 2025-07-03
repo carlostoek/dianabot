@@ -500,23 +500,16 @@ Diana {self._get_diana_opinion(trust_level)}
             # Simular callback para mostrar panel de admin
             admin = admin_service.get_admin(user_telegram_id)
 
-            quick_admin_message = f"""
-👑 **Panel de Administración**
+            panel_message = (
+                "👑 *Panel de Administración*\n\n"
+                "1. Generar Token VIP\n"
+                "2. Gestionar Administradores\n"
+                "3. Ver Logs de Acciones\n"
+                "4. Configuración del Sistema\n"
+                "5. Salir"
+            )
 
-Hola {update.effective_user.first_name}!
-
-**Tu nivel:** {admin.admin_level.value.title()}
-**Estado:** {'✅ Activo' if admin.is_active else '❌ Inactivo'}
-
-**Accesos rápidos:**
-• Para generar token VIP: Usar botones del bot principal
-• Para gestionar canales: Acceder via menú del bot
-• Para ver analytics: Panel principal del bot
-
-💡 **Consejo:** Usa el bot principal para acceder a todas las funciones de administración con interfaz completa.
-            """.strip()
-
-            await update.message.reply_text(quick_admin_message, parse_mode="Markdown")
+            await update.message.reply_text(panel_message, parse_mode="Markdown")
 
         except Exception as e:
             logger.error(f"❌ Error en admin_panel_command: {e}", exc_info=True)

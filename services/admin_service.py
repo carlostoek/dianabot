@@ -391,3 +391,163 @@ class AdminService:
     # ===== MÉTODOS AUXILIARES =====
 
     def _get_default_permissions_for_level(self, admin_level: AdminLevel) -> Dict[str,
+
+        def _get_default_permissions_for_level(self, admin_level: AdminLevel) -> Dict[str, Any]:
+        """Obtiene permisos por defecto según el nivel de administrador"""
+        
+        if admin_level == AdminLevel.MODERATOR:
+            return {
+                "can_generate_vip_tokens": False,
+                "can_manage_channels": True,
+                "can_manage_users": False,
+                "can_access_analytics": True,
+                "can_manage_admins": False,
+                "can_modify_system": False,
+                "max_vip_tokens_per_day": 0,
+                "max_channels_manageable": 3,
+            }
+        
+        elif admin_level == AdminLevel.ADMIN:
+            return {
+                "can_generate_vip_tokens": True,
+                "can_manage_channels": True,
+                "can_manage_users": True,
+                "can_access_analytics": True,
+                "can_manage_admins": False,
+                "can_modify_system": False,
+                "max_vip_tokens_per_day": 10,
+                "max_channels_manageable": 10,
+            }
+        
+        elif admin_level == AdminLevel.SUPER_ADMIN:
+            return {
+                "can_generate_vip_tokens": True,
+                "can_manage_channels": True,
+                "can_manage_users": True,
+                "can_access_analytics": True,
+                "can_manage_admins": True,
+                "can_modify_system": True,
+                "max_vip_tokens_per_day": 999,  # Prácticamente ilimitado
+                "max_channels_manageable": 999,
+            }
+        
+        else:
+            # Permisos mínimos por defecto
+            return {
+                "can_generate_vip_tokens": False,
+                "can_manage_channels": False,
+                "can_manage_users": False,
+                "can_access_analytics": False,
+                "can_manage_admins": False,
+                "can_modify_system": False,
+                "max_vip_tokens_per_day": 0,
+                "max_channels_manageable": 0,
+            }
+
+    def _generate_admin_creation_message(self, admin: Admin) -> str:
+        """Genera mensaje de confirmación de creación de admin"""
+        
+        level_messages = {
+            AdminLevel.MODERATOR: "Un nuevo moderador se une al equipo",
+            AdminLevel.ADMIN: "Un nuevo administrador ha sido designado",
+            AdminLevel.SUPER_ADMIN: "Un nuevo Super Administrador ha ascendido"
+        }
+        
+        level_msg = level_messages.get(admin.admin_level, "Nuevo administrador creado")
+        
+        return f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire ceremonioso]*
+
+"*{level_msg}.*"
+
+👑 **Administrador Creado Exitosamente**
+
+**Información:**
+• Nombre: {admin.first_name or 'N/A'}
+• Username: @{admin.username or 'N/A'}
+• Nivel: {admin.admin_level.value.title()}
+• ID: {admin.id}
+
+**Permisos otorgados:**
+• Generar tokens VIP: {'✅' if admin.can_generate_vip_tokens else '❌'}
+• Gestionar canales: {'✅' if admin.can_manage_channels else '❌'}
+• Gestionar usuarios: {'✅' if admin.can_manage_users else '❌'}
+• Ver analytics: {'✅' if admin.can_access_analytics else '❌'}
+• Gestionar admins: {'✅' if admin.can_manage_admins else '❌'}
+
+*[Con aire profesional]*
+
+"*Diana ha sido informada del nombramiento.*"
+        """.strip()
+
+    def _update_narrative_progress(self, user_id: int):
+        """Actualiza progreso narrativo cuando se desbloquea lore"""
+        
+        try:
+            # Obtener progreso actual del usuario
+            from services.user_service import UserService
+            user_service = UserService()
+            narrative_state = user_service.get_or_create_narrative_state(user_id)
+            
+            # Incrementar contador de interacciones con Diana
+            narrative_state.diana_interactions += 1
+            
+            # Actualizar timestamp de última interacción
+            narrative_state.last_interaction = datetime.utcnow()
+            
+            # Calcular nuevo nivel de interés de Diana
+            if narrative_state.diana_interest_level < 100:
+                narrative_state.diana_interest_level = min(
+                    100, 
+                    narrative_state.diana_interest_level + 5
+                )
+            
+            self.db.commit()
+            
+        except Exception as e:
+            logger.error(f"Error actualizando progreso narrativo: {e}")
+
+    def _check_narrative_level_unlock(self, user_id: int, new_level: int):
+        """Verifica si el nuevo nivel desbloquea contenido narrativo"""
+        
+        try:
+            # Buscar piezas de lore que se desbloqueen con este nivel
+            from models.narrative import LorePiece, UserLorePiece
+            
+            unlocked_pieces = (
+                self.db.query(LorePiece)
+                .filter(LorePiece.required_level == new_level)
+                .all()
+            )
+
+            for piece in unlocked_pieces:
+                # Verificar si el usuario ya tiene esta pieza
+                existing = (
+                    self.db.query(UserLorePiece)
+                    .filter(
+                        and_(
+                            UserLorePiece.user_id == user_id,
+                            UserLorePiece.lore_piece_id == piece.id,
+                        )
+                    )
+                    .first()
+                )
+
+                if not existing:
+                    # Desbloquear nueva pieza de lore
+                    user_lore = UserLorePiece(
+                        user_id=user_id,
+                        lore_piece_id=piece.id,
+                        unlocked_at=datetime.utcnow(),
+                        unlock_method="level_up",
+                    )
+                    self.db.add(user_lore)
+
+                    # Notificar al usuario
+                    self.notify_lore_unlocked(user_id, piece)
+
+            self.db.commit()
+            
+        except Exception as e:
+            logger.error(f"Error verificando desbloqueo narrativo: {e}")
+            

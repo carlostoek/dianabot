@@ -129,6 +129,10 @@ class UserService:
         """Obtiene usuario por ID de Telegram"""
         return self.db.query(User).filter(User.telegram_id == telegram_id).first()
 
+    def get_all_users(self) -> List[User]:
+        """Return all users registered in the system."""
+        return self.db.query(User).filter(User.is_banned == False).all()
+
     def get_user_profile(self, user_id: int) -> Dict[str, Any]:
         """Obtiene perfil completo del usuario con contexto narrativo"""
 

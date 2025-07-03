@@ -985,4 +985,27 @@ Bienvenido al círculo íntimo. Diana está... complacida.
         }
 
     # Continúo con más métodos auxiliares...
+
+    def get_pending_auto_approvals(self) -> List[ChannelMembership]:
+        """Return memberships eligible for automatic approval."""
+
+        now = datetime.utcnow()
+
+        pending = (
+            self.db.query(ChannelMembership)
+            .join(Channel, ChannelMembership.channel_id == Channel.id)
+            .filter(
+                ChannelMembership.status == MembershipStatus.PENDING,
+                Channel.auto_approval_enabled == True,
+            )
+            .all()
+        )
+
+        approvable = []
+        for membership in pending:
+            delay = membership.channel.auto_approval_delay_minutes or 0
+            if membership.requested_at + timedelta(minutes=delay) <= now:
+                approvable.append(membership)
+
+        return approvable
    

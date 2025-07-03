@@ -29,14 +29,7 @@ class CallbackHandler:
             user_id = update.effective_user.id
 
 
-                    # === NAVIGATION ===
-        elif callback_data == "main_menu":
-            await self.start_handler._show_main_menu(
-                update, context, user, narrative_state
-            )
-        elif callback_data == "back":
-            await self._handle_back(update, context, user, narrative_state)
-        
+            
             # Routing de callbacks
             if callback_data == "profile":
                 await self._handle_profile(update, context)

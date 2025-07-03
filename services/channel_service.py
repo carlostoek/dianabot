@@ -116,6 +116,11 @@ class ChannelService:
         """Obtiene canal por ID de Telegram"""
         return self.db.query(Channel).filter(Channel.telegram_id == telegram_id).first()
 
+    def get_all_channels(self) -> List[Channel]:
+        """Devuelve todos los canales registrados."""
+
+        return self.db.query(Channel).all()
+
     def update_channel_settings(
         self, channel_id: int, settings: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -565,6 +570,28 @@ class ChannelService:
             )
 
         return requests_data
+
+    def approve_pending_requests(self, channel_id: int) -> int:
+        """Aprueba todas las solicitudes pendientes de un canal."""
+
+        pending_memberships = (
+            self.db.query(ChannelMembership)
+            .filter(
+                and_(
+                    ChannelMembership.channel_id == channel_id,
+                    ChannelMembership.status == MembershipStatus.PENDING,
+                )
+            )
+            .all()
+        )
+
+        approved_count = 0
+        for membership in pending_memberships:
+            result = self.approve_join_request(membership.id, auto_approved=True)
+            if not result.get("error"):
+                approved_count += 1
+
+        return approved_count
 
     # ===== ACCESO AUTOMÁTICO POR PROGRESO NARRATIVO =====
 

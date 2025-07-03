@@ -63,6 +63,18 @@ class AdminService:
             )
         ).first()
 
+    async def get_admin_by_user_id(self, user_id: int) -> Optional[Admin]:
+        """Obtiene administrador por ID de Telegram"""
+        try:
+            return (
+                self.db.query(Admin)
+                .filter(Admin.telegram_id == user_id)
+                .first()
+            )
+        except Exception as e:
+            logger.error(f"Error getting admin by user id: {e}")
+            return None
+
     def get_admin_level(self, telegram_id: int) -> str:
         """Obtiene el nivel de administrador"""
         admin = self.get_admin(telegram_id)
@@ -410,6 +422,19 @@ class AdminService:
         if not include_inactive:
             query = query.filter(Admin.is_active == True)
         return query.order_by(Admin.admin_level.desc(), Admin.created_at).all()
+
+    async def get_pending_requests(self):
+        """Obtiene solicitudes pendientes de administrador"""
+        try:
+            return (
+                self.db.query(Admin)
+                .filter(Admin.is_active == False)
+                .order_by(Admin.created_at.desc())
+                .all()
+            )
+        except Exception as e:
+            logger.error(f"Error getting pending requests: {e}")
+            return []
 
     def get_admin_statistics(self, telegram_id: int) -> Dict[str, Any]:
         """Obtiene estadísticas de un administrador"""

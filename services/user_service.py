@@ -558,6 +558,95 @@ class UserService:
         # Placeholder
         return {"health": 100, "energy": 50}
 
+    # ===== MÉTODOS DE CONTEO Y PAGINACIÓN =====
+
+    async def get_total_users_count(self) -> int:
+        """Cuenta total de usuarios registrados"""
+        try:
+            return self.db.query(func.count(User.id)).scalar() or 0
+        except Exception as e:
+            print(f"Error getting total users count: {e}")
+            return 0
+
+    async def get_active_users_count(self) -> int:
+        """Cuenta usuarios activos (últimos 7 días)"""
+        try:
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            return (
+                self.db.query(func.count(User.id))
+                .filter(User.last_activity >= week_ago)
+                .scalar()
+                or 0
+            )
+        except Exception as e:
+            print(f"Error getting active users count: {e}")
+            return 0
+
+    async def get_new_users_today_count(self) -> int:
+        """Cuenta usuarios registrados hoy"""
+        try:
+            today = datetime.utcnow().date()
+            return (
+                self.db.query(func.count(User.id))
+                .filter(func.date(User.created_at) == today)
+                .scalar()
+                or 0
+            )
+        except Exception as e:
+            print(f"Error getting new users today count: {e}")
+            return 0
+
+    async def get_new_users_week_count(self) -> int:
+        """Cuenta usuarios nuevos en la última semana"""
+        try:
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            return (
+                self.db.query(func.count(User.id))
+                .filter(User.created_at >= week_ago)
+                .scalar()
+                or 0
+            )
+        except Exception as e:
+            print(f"Error getting new users week count: {e}")
+            return 0
+
+    async def get_average_level(self) -> float:
+        """Obtiene el nivel promedio de usuarios"""
+        try:
+            result = self.db.query(func.avg(User.level)).scalar()
+            return float(result or 0)
+        except Exception as e:
+            print(f"Error getting average level: {e}")
+            return 0.0
+
+    async def get_advanced_users_count(self) -> int:
+        """Cuenta usuarios con nivel 5 o superior"""
+        try:
+            return (
+                self.db.query(func.count(User.id))
+                .filter(User.level >= 5)
+                .scalar()
+                or 0
+            )
+        except Exception as e:
+            print(f"Error getting advanced users count: {e}")
+            return 0
+
+    async def get_users_paginated(self, page: int = 0, per_page: int = 10):
+        """Obtiene usuarios paginados"""
+        try:
+            offset = page * per_page
+            return (
+                self.db.query(User)
+                .order_by(User.created_at.desc())
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
+        except Exception as e:
+            print(f"Error getting paginated users: {e}")
+            return []
+
     # ===== MÉTODOS AUXILIARES =====
 
     def _calculate_level_from_experience(self, experience: int) -> int:

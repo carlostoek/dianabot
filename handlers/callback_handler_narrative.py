@@ -2670,7 +2670,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
     async def _check_level_up(self, user) -> bool:
         """Verifica y procesa subida de nivel"""
         try:
-            required_xp = await self.user_service.calculate_xp_for_level(user.level + 1)
+            required_xp = self.user_service.calculate_xp_for_level(user.level + 1)
 
             if user.experience >= required_xp:
                 user.level += 1
@@ -2713,11 +2713,12 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 main_menu_text, keyboard = self._build_static_menu(user, user_role)
 
             # Verificar si es admin para añadir acceso al Diván
+            is_admin = False
             try:
-                admin = self.admin_service.get_admin_by_user_id(user_id)
+                admin = await self.admin_service.get_admin_by_user_id(user_id)
                 is_admin = admin and admin.is_active
             except Exception:
-                is_admin = False
+                pass
 
             if is_admin:
                 keyboard.append([InlineKeyboardButton("🏛️ Panel de Administración", callback_data="divan_access")])
@@ -2853,7 +2854,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
 
-            next_level_xp = await self.user_service.calculate_xp_for_level(user.level + 1)
+            next_level_xp = self.user_service.calculate_xp_for_level(user.level + 1)
             progress_percentage = (
                 (user.experience / next_level_xp) * 100 if next_level_xp > 0 else 100
             )
@@ -3028,8 +3029,16 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
 
-            active_missions = await self.mission_service.get_user_active_missions(user_id)
-            completed_count = await self.mission_service.get_user_completed_missions_count(user_id)
+            active_missions = (
+                self.mission_service.get_user_active_missions(user_id)
+                if hasattr(self.mission_service, "get_user_active_missions")
+                else []
+            )
+            completed_count = (
+                self.mission_service.get_user_completed_missions_count(user_id)
+                if hasattr(self.mission_service, "get_user_completed_missions_count")
+                else 0
+            )
 
             missions_text = "🎯 *Tus Misiones*\n\n"
             missions_text += "📊 **Progreso:**\n"
@@ -3132,7 +3141,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
 
-            lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
+            lore_pieces = self.user_service.get_user_lore_pieces(user_id)
 
             keyboard = [
                 [InlineKeyboardButton("🔍 Ver Pistas", callback_data="backpack_view_clues")],
@@ -3168,7 +3177,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
 
         try:
             user = self.user_service.get_user_by_telegram_id(user_id)
-            lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
+            lore_pieces = self.user_service.get_user_lore_pieces(user_id)
 
             if not lore_pieces:
                 clues_text = (
@@ -3212,7 +3221,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
 
         try:
             user = self.user_service.get_user_by_telegram_id(user_id)
-            lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
+            lore_pieces = self.user_service.get_user_lore_pieces(user_id)
 
             progress_text = (
                 f"📈 *Tu Progreso Narrativo*\n\n"

@@ -63,6 +63,24 @@ class CallbackHandlerNarrative:
                 await self._show_missions_narrative(update, context, user, narrative_state)
             elif callback_data == "back_to_menu":
                 await self._show_main_menu_narrative(update, context, user, narrative_state)
+
+            # === CALLBACKS DEL SISTEMA ORIGINAL ===
+            elif callback_data == "missions":
+                await self._handle_missions_original(update, context, user, narrative_state)
+            elif callback_data == "premium":
+                await self._handle_premium_original(update, context, user, narrative_state)
+
+            # === CALLBACKS NARRATIVOS ===
+            elif callback_data == "narrative_progress":
+                await self._handle_narrative_progress(update, context, user, narrative_state)
+            elif callback_data == "continue_story":
+                await self._handle_continue_story(update, context, user, narrative_state)
+            elif callback_data == "review_clues":
+                await self._handle_unknown_callback_narrative(update, context, "review_clues")
+            elif callback_data == "talk_to_diana":
+                await self._handle_unknown_callback_narrative(update, context, "talk_to_diana")
+            elif callback_data == "settings":
+                await self._handle_unknown_callback_narrative(update, context, "settings")
             
             # === CATCH-ALL ===
             else:

@@ -3,7 +3,6 @@ from telegram.ext import ContextTypes
 from services.user_service import UserService
 from services.admin_service import AdminService
 from utils.lucien_voice import LucienVoice
-from models.admin import AdminLevel
 import logging
 from typing import Dict, Any
 
@@ -424,29 +423,28 @@ Diana {self._get_diana_opinion(trust_level)}
                     f"🛡️ *Sistema de Administración*\n\n"
                     f"Ya existen administradores en el sistema.\n\n"
                     f"Si necesitas acceso de administrador, contacta a un Super Admin existente.",
-                    parse_mode="Markdown",
+                    parse_mode="Markdown"
                 )
                 return
 
-            # Crear primer super admin
+            # Crear primer super admin DIRECTAMENTE (sin verificación de permisos)
             user_data = {
                 "username": update.effective_user.username,
                 "first_name": update.effective_user.first_name,
                 "last_name": update.effective_user.last_name,
             }
 
-            result = admin_service.create_admin(
+            # ✅ USAR MÉTODO DIRECTO SIN VERIFICACIÓN DE PERMISOS
+            result = admin_service.create_first_admin_direct(
                 telegram_id=user_telegram_id,
-                admin_level=AdminLevel.SUPER_ADMIN,
-                created_by_telegram_id=user_telegram_id,
-                user_data=user_data,
+                user_data=user_data
             )
 
             if result.get("success"):
                 welcome_message = f"""
 👑 **¡Bienvenido Super Administrador!**
 
-{self.lucien.EMOJIS['lucien']} *[Con máximo respeto]*
+{admin_service.lucien.EMOJIS['lucien']} *[Con máximo respeto]*
 
 "*{update.effective_user.first_name}, Diana me ha informado de su nombramiento como Super Administrador.*"
 
@@ -464,8 +462,7 @@ Diana {self._get_diana_opinion(trust_level)}
 
 **Comandos importantes:**
 • `/admin_panel` - Panel de administración
-• `/create_admin` - Crear nuevos administradores
-• `/system_status` - Estado del sistema
+• `/start` - Menú principal (ahora con opciones de admin)
 
 *[Con advertencia profesional]*
 
@@ -474,14 +471,6 @@ Diana {self._get_diana_opinion(trust_level)}
 
                 await update.message.reply_text(welcome_message, parse_mode="Markdown")
 
-                # Log del evento histórico
-                admin_service.log_admin_action(
-                    admin_telegram_id=user_telegram_id,
-                    action_type="first_admin_created",
-                    action_description="Primer Super Admin creado en el sistema",
-                    action_data=f'{{"first_admin_id": {result["admin"].id}, "telegram_id": {user_telegram_id}}}',
-                )
-
             else:
                 await update.message.reply_text(
                     f"❌ Error creando administrador: {result.get('error', 'Error desconocido')}"
@@ -489,7 +478,7 @@ Diana {self._get_diana_opinion(trust_level)}
 
         except Exception as e:
             logger.error(f"❌ Error en create_first_admin_command: {e}", exc_info=True)
-            await self._send_error_message(update, "Error creando primer administrador")
+            await update.message.reply_text("❌ Error interno creando primer administrador.")
 
     async def admin_panel_command(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE

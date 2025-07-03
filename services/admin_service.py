@@ -160,9 +160,9 @@ class AdminService:
     # ===== GESTIÓN DE ADMINISTRADORES =====
 
     def create_admin(
-        self, 
-        telegram_id: int, 
-        admin_level: AdminLevel, 
+        self,
+        telegram_id: int,
+        admin_level: AdminLevel,
         created_by_telegram_id: int,
         user_data: Dict[str, Any] = None
     ) -> Dict[str, Any]:
@@ -212,6 +212,7 @@ class AdminService:
     def create_first_admin_direct(
         self,
         telegram_id: int,
+
         user_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Crea el primer super admin sin verificación de permisos"""
@@ -266,6 +267,7 @@ class AdminService:
         except Exception as e:
             logger.error(f"Error creando primer admin: {e}", exc_info=True)
             return {"error": f"Error interno: {str(e)}"}
+
 
     def update_admin_permissions(
         self, 

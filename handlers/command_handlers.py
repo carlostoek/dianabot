@@ -1,7 +1,9 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.user_service import UserService
+from services.admin_service import AdminService
 from utils.lucien_voice import LucienVoice
+from models.admin import AdminLevel
 import logging
 from typing import Dict, Any
 
@@ -405,3 +407,128 @@ Diana {self._get_diana_opinion(trust_level)}
         except Exception as e:
             logger.error(f"❌ Error en admin_command: {e}", exc_info=True)
             await self._send_error_message(update, "Error mostrando panel de administrador")
+
+    async def create_first_admin_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Comando especial para crear el primer super admin - Solo funciona una vez"""
+
+        try:
+            admin_service = AdminService()
+            user_telegram_id = update.effective_user.id
+
+            # Verificar si ya existen administradores
+            all_admins = admin_service.get_all_admins(include_inactive=True)
+            if all_admins:
+                await update.message.reply_text(
+                    f"🛡️ *Sistema de Administración*\n\n"
+                    f"Ya existen administradores en el sistema.\n\n"
+                    f"Si necesitas acceso de administrador, contacta a un Super Admin existente.",
+                    parse_mode="Markdown",
+                )
+                return
+
+            # Crear primer super admin
+            user_data = {
+                "username": update.effective_user.username,
+                "first_name": update.effective_user.first_name,
+                "last_name": update.effective_user.last_name,
+            }
+
+            result = admin_service.create_admin(
+                telegram_id=user_telegram_id,
+                admin_level=AdminLevel.SUPER_ADMIN,
+                created_by_telegram_id=user_telegram_id,
+                user_data=user_data,
+            )
+
+            if result.get("success"):
+                welcome_message = f"""
+👑 **¡Bienvenido Super Administrador!**
+
+{self.lucien.EMOJIS['lucien']} *[Con máximo respeto]*
+
+"*{update.effective_user.first_name}, Diana me ha informado de su nombramiento como Super Administrador.*"
+
+*[Con aire ceremonioso]*
+
+"*Usted ahora tiene control total sobre el sistema. Use este poder... sabiamente.*"
+
+**Sus permisos incluyen:**
+• 🎫 Generar tokens VIP ilimitados
+• 📺 Gestionar todos los canales
+• 👥 Administrar usuarios
+• 👑 Crear y gestionar otros administradores
+• 📊 Acceso completo a analytics
+• ⚙️ Configurar el sistema
+
+**Comandos importantes:**
+• `/admin_panel` - Panel de administración
+• `/create_admin` - Crear nuevos administradores
+• `/system_status` - Estado del sistema
+
+*[Con advertencia profesional]*
+
+"*Recuerde que Diana observa incluso a sus administradores...*"
+                """.strip()
+
+                await update.message.reply_text(welcome_message, parse_mode="Markdown")
+
+                # Log del evento histórico
+                admin_service.log_admin_action(
+                    admin_telegram_id=user_telegram_id,
+                    action_type="first_admin_created",
+                    action_description="Primer Super Admin creado en el sistema",
+                    action_data=f'{{"first_admin_id": {result["admin"].id}, "telegram_id": {user_telegram_id}}}',
+                )
+
+            else:
+                await update.message.reply_text(
+                    f"❌ Error creando administrador: {result.get('error', 'Error desconocido')}"
+                )
+
+        except Exception as e:
+            logger.error(f"❌ Error en create_first_admin_command: {e}", exc_info=True)
+            await self._send_error_message(update, "Error creando primer administrador")
+
+    async def admin_panel_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Comando /admin_panel - Acceso directo al panel de administración"""
+
+        try:
+            admin_service = AdminService()
+            user_telegram_id = update.effective_user.id
+
+            if not admin_service.is_admin(user_telegram_id):
+                await update.message.reply_text(
+                    f"🚫 **Acceso Denegado**\n\n"
+                    f"Este comando es solo para administradores.",
+                    parse_mode="Markdown",
+                )
+                return
+
+            # Simular callback para mostrar panel de admin
+            admin = admin_service.get_admin(user_telegram_id)
+
+            quick_admin_message = f"""
+👑 **Panel de Administración**
+
+Hola {update.effective_user.first_name}!
+
+**Tu nivel:** {admin.admin_level.value.title()}
+**Estado:** {'✅ Activo' if admin.is_active else '❌ Inactivo'}
+
+**Accesos rápidos:**
+• Para generar token VIP: Usar botones del bot principal
+• Para gestionar canales: Acceder via menú del bot
+• Para ver analytics: Panel principal del bot
+
+💡 **Consejo:** Usa el bot principal para acceder a todas las funciones de administración con interfaz completa.
+            """.strip()
+
+            await update.message.reply_text(quick_admin_message, parse_mode="Markdown")
+
+        except Exception as e:
+            logger.error(f"❌ Error en admin_panel_command: {e}", exc_info=True)
+            await update.message.reply_text("❌ Error accediendo al panel de administración.")

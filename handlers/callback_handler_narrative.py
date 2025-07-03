@@ -2,6 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.user_service import UserService
 from services.mission_service import MissionService
+from services.admin_service import AdminService
 from utils.lucien_voice_enhanced import LucienVoiceEnhanced, InteractionPattern, UserArchetype
 import logging
 from typing import Dict, Any
@@ -16,6 +17,7 @@ class CallbackHandlerNarrative:
         try:
             self.user_service = UserService()
             self.mission_service = MissionService()
+            self.admin_service = AdminService()
             self.lucien = LucienVoiceEnhanced()
             logger.info("✅ CallbackHandlerNarrative inicializado")
         except Exception as e:
@@ -506,17 +508,43 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
     # === MENÚS PRINCIPALES CON NARRATIVA ===
 
     async def _show_main_menu_narrative(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
-        """Menú principal con contexto narrativo"""
-        
+        """Menú principal con detección de administradores"""
+
         try:
             first_name = getattr(user, 'first_name', 'Usuario')
-            
+            user_telegram_id = update.effective_user.id
+
+            # Verificar si es administrador
+            is_admin = self.admin_service.is_admin(user_telegram_id)
+            admin_level = None
+
+            if is_admin:
+                admin = self.admin_service.get_admin(user_telegram_id)
+                admin_level = admin.admin_level.value if admin else None
+
             # Detectar progreso narrativo actual
             current_level = getattr(narrative_state, 'current_level', 'newcomer')
-            
-            # Mensaje adaptativo según progreso
-            if current_level == 'newcomer':
+
+            # Mensaje adaptativo según admin/usuario
+            if is_admin:
                 menu_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con reverencia especial]*
+
+"*{first_name}... mi estimado administrador.*"
+
+👑 **Panel Principal - Administrador {admin_level.title()}**
+
+*[Con aire conspirativo]*
+
+Diana me ha informado de tu... autoridad especial. 
+
+*[Con respeto profesional]*
+
+¿Deseas gestionar el reino o disfrutar como usuario?
+                """.strip()
+            else:
+                if current_level == 'newcomer':
+                    menu_message = f"""
 {self.lucien.EMOJIS['lucien']} *[Con aire de recepcionista sarcástico]*
 
 "*Oh, {first_name}... de vuelta al lobby. Qué... predecible.*"
@@ -526,9 +554,9 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
 Diana está observando tu... progreso. O la falta de él.
 
 ¿Qué intentarás ahora?
-                """.strip()
-            else:
-                menu_message = f"""
+                    """.strip()
+                else:
+                    menu_message = f"""
 {self.lucien.EMOJIS['lucien']} *[Con reconocimiento reluctante]*
 
 "*{first_name}... has progresado más de lo que esperaba.*"
@@ -538,21 +566,37 @@ Diana está observando tu... progreso. O la falta de él.
 Diana ha estado... comentando sobre ti. Eso es... unusual.
 
 ¿Continuamos con tu desarrollo personal?
-                """.strip()
+                    """.strip()
 
-            # Botones adaptativos según progreso
-            keyboard = [
-                [InlineKeyboardButton("👤 Mi Progreso Narrativo", callback_data="narrative_progress")],
+            # Botones adaptativos según admin/usuario
+            keyboard = []
+
+            if is_admin:
+                keyboard.extend([
+                    [InlineKeyboardButton("👑 Panel de Administración", callback_data="admin_panel")],
+                    [InlineKeyboardButton("🎫 Generar Token VIP", callback_data="generate_vip_token")],
+                    [InlineKeyboardButton("📊 Ver Analytics", callback_data="admin_analytics")],
+                    [InlineKeyboardButton("━━━━━━━━━━━━━━━━━━━━", callback_data="separator")]
+                ])
+
+            keyboard.extend([
+                [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
                 [InlineKeyboardButton("🎭 Continuar Historia", callback_data="continue_story")],
-                [InlineKeyboardButton("🗺️ Revisar Pistas", callback_data="review_clues")],
-                [InlineKeyboardButton("💬 Hablar con Diana", callback_data="talk_to_diana")],
-                [InlineKeyboardButton("⚙️ Configuración", callback_data="settings")],
-            ]
+                [InlineKeyboardButton("🎯 Mis Misiones", callback_data="missions")],
+            ])
+
+            if hasattr(narrative_state, 'has_divan_access') and narrative_state.has_divan_access:
+                keyboard.append([InlineKeyboardButton("💎 Acceso al Diván", callback_data="divan_access")])
+            else:
+                keyboard.append([InlineKeyboardButton("🔥 Contenido Premium", callback_data="premium")])
+
+            keyboard.append([InlineKeyboardButton("⚙️ Configuración", callback_data="settings")])
+
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await update.callback_query.edit_message_text(
-                menu_message, 
-                reply_markup=reply_markup, 
+                menu_message,
+                reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
 

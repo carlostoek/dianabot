@@ -160,9 +160,9 @@ class AdminService:
     # ===== GESTIÓN DE ADMINISTRADORES =====
 
     def create_admin(
-        self, 
-        telegram_id: int, 
-        admin_level: AdminLevel, 
+        self,
+        telegram_id: int,
+        admin_level: AdminLevel,
         created_by_telegram_id: int,
         user_data: Dict[str, Any] = None
     ) -> Dict[str, Any]:
@@ -208,6 +208,48 @@ class AdminService:
             "admin": admin,
             "message": self._generate_admin_creation_message(admin)
         }
+
+    def create_first_admin_direct(
+        self,
+        telegram_id: int,
+        user_data: Dict[str, Any] = None,
+    ) -> Dict[str, Any]:
+        """Crea el primer super admin sin verificar permisos."""
+
+        # Verificar que no existan admins previos
+        if self.get_all_admins(include_inactive=True):
+            return {"error": "Ya existen administradores"}
+
+        # Prevenir duplicados por si acaso
+        existing_admin = self.db.query(Admin).filter(Admin.telegram_id == telegram_id).first()
+        if existing_admin:
+            return {"error": "El usuario ya es administrador"}
+
+        permissions = self._get_default_permissions_for_level(AdminLevel.SUPER_ADMIN)
+
+        admin = Admin(
+            telegram_id=telegram_id,
+            username=user_data.get("username") if user_data else None,
+            first_name=user_data.get("first_name") if user_data else None,
+            last_name=user_data.get("last_name") if user_data else None,
+            admin_level=AdminLevel.SUPER_ADMIN,
+            created_by_admin_id=None,
+            **permissions,
+        )
+
+        self.db.add(admin)
+        self.db.commit()
+        self.db.refresh(admin)
+
+        # Registrar creación histórica
+        self.log_admin_action(
+            admin_telegram_id=telegram_id,
+            action_type="first_admin_created",
+            action_description="Primer Super Admin creado en el sistema",
+            action_data=json.dumps({"first_admin_id": admin.id, "telegram_id": telegram_id}),
+        )
+
+        return {"success": True, "admin": admin}
 
     def update_admin_permissions(
         self, 

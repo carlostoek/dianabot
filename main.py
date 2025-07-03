@@ -64,9 +64,11 @@ async def generate_vip_token(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
 
     if "token" in token_info:
-        await context.bot.send_message(
-            chat_id=channel_id, text=f"Token VIP generado: {token_info['token']}"
+        message = (
+            f"Token VIP generado: {token_info['token']}\n"
+            f"Enlace: {token_info.get('invite_link', 'N/A')}"
         )
+        await context.bot.send_message(chat_id=channel_id, text=message)
 
 class DianaBot:
     """Bot principal de Diana - Sistema de Seducción Narrativa"""

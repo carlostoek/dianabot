@@ -67,12 +67,12 @@ class CallbackHandlerNarrative:
             # === CALLBACKS DEL SISTEMA ORIGINAL ===
             elif callback_data == "premium":
                 await self._handle_premium_original(update, context, user, narrative_state)
+            elif callback_data == "continue_story":
+                await self._handle_continue_story(update, context, user, narrative_state)
 
             # === CALLBACKS NARRATIVOS ===
             elif callback_data == "narrative_progress":
                 await self._handle_narrative_progress(update, context, user, narrative_state)
-            elif callback_data == "continue_story":
-                await self._handle_continue_story(update, context, user, narrative_state)
             elif callback_data == "review_clues":
                 await self._handle_unknown_callback_narrative(update, context, "review_clues")
             elif callback_data == "talk_to_diana":

@@ -365,7 +365,7 @@ class AdminService:
             "action_breakdown": {action_type: count for action_type, count in action_types}
         }
 
-    def get_admin_actions_log(
+        def get_admin_actions_log(
         self, 
         telegram_id: int = None, 
         action_type: str = None,
@@ -390,9 +390,7 @@ class AdminService:
 
     # ===== MÉTODOS AUXILIARES =====
 
-    def _get_default_permissions_for_level(self, admin_level: AdminLevel) -> Dict[str,
-
-        def _get_default_permissions_for_level(self, admin_level: AdminLevel) -> Dict[str, Any]:
+    def _get_default_permissions_for_level(self, admin_level: AdminLevel) -> Dict[str, Any]:
         """Obtiene permisos por defecto según el nivel de administrador"""
         
         if admin_level == AdminLevel.MODERATOR:
@@ -479,75 +477,4 @@ class AdminService:
 
 "*Diana ha sido informada del nombramiento.*"
         """.strip()
-
-    def _update_narrative_progress(self, user_id: int):
-        """Actualiza progreso narrativo cuando se desbloquea lore"""
-        
-        try:
-            # Obtener progreso actual del usuario
-            from services.user_service import UserService
-            user_service = UserService()
-            narrative_state = user_service.get_or_create_narrative_state(user_id)
-            
-            # Incrementar contador de interacciones con Diana
-            narrative_state.diana_interactions += 1
-            
-            # Actualizar timestamp de última interacción
-            narrative_state.last_interaction = datetime.utcnow()
-            
-            # Calcular nuevo nivel de interés de Diana
-            if narrative_state.diana_interest_level < 100:
-                narrative_state.diana_interest_level = min(
-                    100, 
-                    narrative_state.diana_interest_level + 5
-                )
-            
-            self.db.commit()
-            
-        except Exception as e:
-            logger.error(f"Error actualizando progreso narrativo: {e}")
-
-    def _check_narrative_level_unlock(self, user_id: int, new_level: int):
-        """Verifica si el nuevo nivel desbloquea contenido narrativo"""
-        
-        try:
-            # Buscar piezas de lore que se desbloqueen con este nivel
-            from models.narrative import LorePiece, UserLorePiece
-            
-            unlocked_pieces = (
-                self.db.query(LorePiece)
-                .filter(LorePiece.required_level == new_level)
-                .all()
-            )
-
-            for piece in unlocked_pieces:
-                # Verificar si el usuario ya tiene esta pieza
-                existing = (
-                    self.db.query(UserLorePiece)
-                    .filter(
-                        and_(
-                            UserLorePiece.user_id == user_id,
-                            UserLorePiece.lore_piece_id == piece.id,
-                        )
-                    )
-                    .first()
-                )
-
-                if not existing:
-                    # Desbloquear nueva pieza de lore
-                    user_lore = UserLorePiece(
-                        user_id=user_id,
-                        lore_piece_id=piece.id,
-                        unlocked_at=datetime.utcnow(),
-                        unlock_method="level_up",
-                    )
-                    self.db.add(user_lore)
-
-                    # Notificar al usuario
-                    self.notify_lore_unlocked(user_id, piece)
-
-            self.db.commit()
-            
-        except Exception as e:
-            logger.error(f"Error verificando desbloqueo narrativo: {e}")
-            
+    

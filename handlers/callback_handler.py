@@ -2,8 +2,10 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.user_service import UserService
 from utils.lucien_voice import LucienVoice
+from config.settings import settings
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,31 @@ class CallbackHandler:
             logger.info("✅ CallbackHandler inicializado")
         except Exception as e:
             logger.error(f"❌ Error inicializando CallbackHandler: {e}")
+
+    def _is_admin(self, user_id: int) -> bool:
+        """Verifica si el usuario es administrador"""
+        admin_ids: List[int] = []
+
+        env_admins = os.getenv("ADMIN_IDS")
+        if env_admins:
+            try:
+                admin_ids.extend(int(uid.strip()) for uid in env_admins.split(",") if uid.strip())
+            except ValueError:
+                pass
+
+        settings_admins = getattr(settings, "ADMIN_IDS", None)
+        if isinstance(settings_admins, str):
+            try:
+                admin_ids.extend(int(uid.strip()) for uid in settings_admins.split(",") if uid.strip())
+            except ValueError:
+                pass
+        elif isinstance(settings_admins, list):
+            try:
+                admin_ids.extend(int(uid) for uid in settings_admins)
+            except Exception:
+                pass
+
+        return user_id in admin_ids
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Maneja todos los callbacks"""
@@ -565,12 +592,43 @@ class CallbackHandler:
 
     # === CALLBACKS DE NAVEGACIÓN ===
 
-    async def _handle_back_to_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Regresa al menú principal"""
+    async def _handle_back_to_menu(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Regresa al menú principal - detecta si es admin"""
 
         first_name = update.effective_user.first_name or "Usuario"
+        user_id = update.effective_user.id
 
-        message = f"""
+        is_admin = self._is_admin(user_id)
+
+        if is_admin:
+            message = f"""
+👑 **Panel de Administrador**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana aparece con aire autoritario]*
+
+"*{first_name}... mi administrador de confianza.*"
+
+*[Con sonrisa cómplice]*
+
+"*¿Qué necesitas gestionar hoy?*"
+
+🔧 **CONTROLES DE ADMIN DISPONIBLES**
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
+                [InlineKeyboardButton("🎯 Misiones", callback_data="missions")],
+                [InlineKeyboardButton("⚙️ Panel Admin", callback_data="admin_panel")],
+                [InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")],
+                [InlineKeyboardButton("📊 Estadísticas Bot", callback_data="bot_stats")],
+                [InlineKeyboardButton("🎫 Crear Tokens VIP", callback_data="create_vip_tokens")],
+                [InlineKeyboardButton("📢 Enviar Broadcast", callback_data="send_broadcast")],
+                [InlineKeyboardButton("🔧 Configuración", callback_data="admin_settings")],
+            ]
+        else:
+            message = f"""
 🎭 **Menú Principal**
 
 ¡{first_name}, has regresado!
@@ -580,13 +638,14 @@ Diana me comentó que has estado... observándote.
 Tu progreso no ha pasado desapercibido.
 
 ¿Qué deseas hacer hoy?
-        """.strip()
+            """.strip()
 
-        keyboard = [
-            [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
-            [InlineKeyboardButton("🎯 Misiones", callback_data="missions")],
-            [InlineKeyboardButton("🔥 Contenido Premium", callback_data="premium")],
-        ]
+            keyboard = [
+                [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
+                [InlineKeyboardButton("🎯 Misiones", callback_data="missions")],
+                [InlineKeyboardButton("🔥 Contenido Premium", callback_data="premium")],
+            ]
+
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(

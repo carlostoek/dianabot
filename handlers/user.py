@@ -106,7 +106,7 @@ async def daily_gift_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return
 
     # Dar regalo diario
-    daily_amount = user_service.calculate_daily_gift(user)
+    daily_amount = user_service.calculate_daily_gift(user.id)
     user_service.give_daily_gift(user.id, daily_amount)
 
     gift_text = f"""

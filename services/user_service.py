@@ -125,13 +125,20 @@ class UserService:
 
             self.db.commit()
 
-    async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[User]:
-        """Obtiene usuario por ID de Telegram"""
-        return (
-            self.db.query(User)
-            .filter(User.telegram_id == telegram_id)
-            .first()
-        )
+    def get_user_by_telegram_id(self, telegram_id: int):
+        """Obtiene usuario por telegram_id - SINCRÓNICO"""
+        try:
+            with self.get_db_session() as session:
+                from sqlalchemy import select
+                from models.user import User
+
+                result = session.execute(
+                    select(User).where(User.telegram_id == telegram_id)
+                )
+                return result.scalar_one_or_none()
+        except Exception as e:
+            print(f"Error getting user by telegram_id: {e}")
+            return None
 
     def get_all_users(self) -> List[User]:
         """Return all users registered in the system."""
@@ -1181,10 +1188,10 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
         """Calcula XP necesaria para un nivel específico"""
         return (target_level ** 2) * 100 + target_level * 50
 
-    async def calculate_daily_gift(self, user_id: int) -> dict:
-        """Calcula el regalo diario para un usuario"""
+    def calculate_daily_gift(self, user_id: int) -> dict:
+        """Calcula el regalo diario para un usuario - SINCRÓNICO"""
         try:
-            user = await self.get_user_by_telegram_id(user_id)
+            user = self.get_user_by_telegram_id(user_id)
             if not user:
                 return {"besitos": 0, "can_claim": False}
 
@@ -1214,11 +1221,11 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
     async def give_daily_gift(self, user_id: int) -> bool:
         """Otorga el regalo diario al usuario"""
         try:
-            gift_info = await self.calculate_daily_gift(user_id)
+            gift_info = self.calculate_daily_gift(user_id)
             if not gift_info["can_claim"]:
                 return False
 
-            user = await self.get_user_by_telegram_id(user_id)
+            user = self.get_user_by_telegram_id(user_id)
             user.besitos += gift_info["besitos"]
             user.last_daily_claim = datetime.utcnow()
 
@@ -1263,7 +1270,7 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
     async def get_user_ranking_position(self, telegram_id: int) -> int:
         """Posición del usuario en el ranking por nivel"""
         try:
-            user = await self.get_user_by_telegram_id(telegram_id)
+            user = self.get_user_by_telegram_id(telegram_id)
             if not user:
                 return 0
 

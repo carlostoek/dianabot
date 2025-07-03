@@ -557,24 +557,212 @@ class CallbackHandlerNarrative:
             return
 
         try:
+            # Obtener estadísticas de subastas
+            active_auctions = 0
+            total_auctions = 0
+            if hasattr(self, 'auction_service'):
+                active_auctions = await self.auction_service.get_active_auctions_count() if hasattr(self.auction_service, 'get_active_auctions_count') else 0
+                total_auctions = await self.auction_service.get_total_auctions_count() if hasattr(self.auction_service, 'get_total_auctions_count') else 0
+
             keyboard = [
                 [InlineKeyboardButton("📋 Subastas Activas", callback_data="admin_auctions_active")],
                 [InlineKeyboardButton("➕ Crear Subasta", callback_data="admin_auction_create")],
-                [InlineKeyboardButton("⚙️ Configurar Subastas", callback_data="admin_auctions_config")],
+                [InlineKeyboardButton("🏆 Historial", callback_data="admin_auctions_history")],
+                [InlineKeyboardButton("💰 Gestionar Pujas", callback_data="admin_auctions_bids")],
+                [InlineKeyboardButton("⚙️ Configuración", callback_data="admin_auctions_config")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_auctions_stats")],
-                [InlineKeyboardButton("🔙 Volver", callback_data="admin_main_menu")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
             ]
 
+            auctions_text = (
+                f"🏆 *Gestión de Subastas VIP*\n\n"
+                f"Administra el sistema de subastas exclusivas.\n\n"
+                f"📊 **Estado actual:**\n"
+                f"• Subastas activas: {active_auctions}\n"
+                f"• Total realizadas: {total_auctions}\n"
+                f"• Sistema: {'Activo' if active_auctions > 0 else 'Inactivo'}\n\n"
+                f"Selecciona una opción:"
+            )
+
             await query.edit_message_text(
-                "🏆 *Gestión de Subastas VIP*\n\n"
-                "Administra las subastas del sistema.\n\n"
-                "Selecciona una opción:",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
+                auctions_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar gestión de subastas: {str(e)}")
+
+    async def handle_admin_lore(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de historia/narrativa"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("📚 Historia Actual", callback_data="admin_lore_current")],
+                [InlineKeyboardButton("✏️ Editar Narrativa", callback_data="admin_lore_edit")],
+                [InlineKeyboardButton("🎭 Gestionar Arquetipos", callback_data="admin_lore_archetypes")],
+                [InlineKeyboardButton("🔮 Triggers Narrativos", callback_data="admin_lore_triggers")],
+                [InlineKeyboardButton("📖 Pistas y Objetos", callback_data="admin_lore_clues")],
+                [InlineKeyboardButton("🌟 Estados Narrativos", callback_data="admin_lore_states")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+            ]
+
+            lore_text = (
+                f"📚 *Gestión de Historia*\n\n"
+                f"Administra la narrativa completa y arquetipos del sistema.\n\n"
+                f"🎭 **Componentes:**\n"
+                f"• Arquetipos activos\n"
+                f"• Estados narrativos\n"
+                f"• Triggers y eventos\n"
+                f"• Pistas y objetos\n\n"
+                f"Selecciona una opción:"
+            )
+
+            await query.edit_message_text(
+                lore_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de historia: {str(e)}")
+
+    async def handle_admin_config(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Configuración general del sistema"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id, "super_admin"):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("⚙️ Configuración General", callback_data="admin_config_general")],
+                [InlineKeyboardButton("🎯 Niveles y Experiencia", callback_data="admin_config_levels")],
+                [InlineKeyboardButton("💰 Sistema de Economía", callback_data="admin_config_economy")],
+                [InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_config_notifications")],
+                [InlineKeyboardButton("👑 Configuración VIP", callback_data="admin_config_vip")],
+                [InlineKeyboardButton("🛡️ Seguridad", callback_data="admin_config_security")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+            ]
+
+            config_text = (
+                f"⚙️ *Configuración del Sistema*\n\n"
+                f"Ajusta la configuración global del bot.\n\n"
+                f"⚠️ **Precaución:** Los cambios aquí afectan todo el sistema.\n\n"
+                f"🔧 **Categorías disponibles:**\n"
+                f"• Configuración general\n"
+                f"• Sistema de niveles\n"
+                f"• Economía y besitos\n"
+                f"• Notificaciones\n"
+                f"• Membresía VIP\n"
+                f"• Seguridad\n\n"
+                f"Selecciona una opción:"
+            )
+
+            await query.edit_message_text(
+                config_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar configuración: {str(e)}")
+
+    async def handle_admin_notifications(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de notificaciones"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            # Obtener estadísticas de notificaciones
+            active_notifications = await self.notification_service.get_active_notifications_count() if hasattr(self.notification_service, 'get_active_notifications_count') else 0
+            sent_today = await self.notification_service.get_sent_today_count() if hasattr(self.notification_service, 'get_sent_today_count') else 0
+
+            keyboard = [
+                [InlineKeyboardButton("📋 Notificaciones Activas", callback_data="admin_notifications_active")],
+                [InlineKeyboardButton("➕ Crear Notificación", callback_data="admin_notification_create")],
+                [InlineKeyboardButton("📅 Programar Envío", callback_data="admin_notification_schedule")],
+                [InlineKeyboardButton("🎯 Notificaciones Dirigidas", callback_data="admin_notification_targeted")],
+                [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_notifications_stats")],
+                [InlineKeyboardButton("⚙️ Configurar", callback_data="admin_notifications_config")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+            ]
+
+            notifications_text = (
+                f"🔔 *Gestión de Notificaciones*\n\n"
+                f"Administra las notificaciones del sistema.\n\n"
+                f"📊 **Estado actual:**\n"
+                f"• Notificaciones activas: {active_notifications}\n"
+                f"• Enviadas hoy: {sent_today}\n"
+                f"• Sistema: Activo\n\n"
+                f"Selecciona una opción:"
+            )
+
+            await query.edit_message_text(
+                notifications_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar notificaciones: {str(e)}")
+
+    async def handle_admin_broadcast(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Mensajes masivos"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id, "super_admin"):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            # Obtener estadísticas de usuarios para broadcast
+            total_users = await self.user_service.get_total_users_count()
+            vip_users = await self.user_service.get_vip_users_count()
+            active_users = await self.user_service.get_active_users_count()
+
+            keyboard = [
+                [InlineKeyboardButton("📢 Mensaje General", callback_data="admin_broadcast_general")],
+                [InlineKeyboardButton("👑 Solo VIP", callback_data="admin_broadcast_vip")],
+                [InlineKeyboardButton("🎯 Por Nivel", callback_data="admin_broadcast_level")],
+                [InlineKeyboardButton("🏆 Por Arquetipo", callback_data="admin_broadcast_archetype")],
+                [InlineKeyboardButton("📱 Usuarios Activos", callback_data="admin_broadcast_active")],
+                [InlineKeyboardButton("📊 Historial", callback_data="admin_broadcast_history")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+            ]
+
+            broadcast_text = (
+                f"📢 *Mensajes Masivos*\n\n"
+                f"Envía mensajes a grupos específicos de usuarios.\n\n"
+                f"👥 **Audiencia disponible:**\n"
+                f"• Total usuarios: {total_users}\n"
+                f"• Usuarios VIP: {vip_users}\n"
+                f"• Usuarios activos: {active_users}\n\n"
+                f"⚠️ **Importante:** Usa con responsabilidad para evitar spam.\n\n"
+                f"Selecciona el tipo de mensaje:"
+            )
+
+            await query.edit_message_text(
+                broadcast_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar broadcast: {str(e)}")
 
     async def handle_admin_user_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Muestra lista paginada de usuarios"""
@@ -823,6 +1011,14 @@ class CallbackHandlerNarrative:
                 await self.handle_admin_games(update, context)
             elif callback_data == "admin_auctions":
                 await self.handle_admin_auctions(update, context)
+            elif callback_data == "admin_lore":
+                await self.handle_admin_lore(update, context)
+            elif callback_data == "admin_config":
+                await self.handle_admin_config(update, context)
+            elif callback_data == "admin_notifications":
+                await self.handle_admin_notifications(update, context)
+            elif callback_data == "admin_broadcast":
+                await self.handle_admin_broadcast(update, context)
             elif callback_data == "manage_users":
                 await self.handle_manage_users(update, context)
             elif callback_data == "admin_my_activity":
@@ -2264,29 +2460,84 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             return None
 
     async def _generate_math_problem(self, user_id: int) -> dict:
-        """Genera un problema matemático sencillo"""
+        """Genera problema matemático personalizado"""
         try:
-            await self.user_service.get_user_by_telegram_id(user_id)
+            user = await self.user_service.get_user_by_telegram_id(user_id)
 
             import random
-            a = random.randint(1, 20)
-            b = random.randint(1, 20)
-            result = a + b
-            options = [result, result + random.randint(1, 4), result - random.randint(1, 4), result + random.randint(5, 10)]
+
+            # Ajustar dificultad según nivel del usuario
+            if user.level <= 2:
+                # Nivel básico: sumas y restas simples
+                a = random.randint(1, 20)
+                b = random.randint(1, 20)
+                operation = random.choice(['+', '-'])
+
+                if operation == '+':
+                    correct_answer = a + b
+                    problem = f"{a} + {b} = ?"
+                else:
+                    if a < b:  # Evitar negativos
+                        a, b = b, a
+                    correct_answer = a - b
+                    problem = f"{a} - {b} = ?"
+
+            elif user.level <= 5:
+                # Nivel intermedio: multiplicación y división
+                a = random.randint(2, 12)
+                b = random.randint(2, 12)
+                operation = random.choice(['*', '/'])
+
+                if operation == '*':
+                    correct_answer = a * b
+                    problem = f"{a} × {b} = ?"
+                else:
+                    correct_answer = a
+                    a = a * b  # Para que la división sea exacta
+                    problem = f"{a} ÷ {b} = ?"
+
+            else:
+                # Nivel avanzado: operaciones combinadas
+                a = random.randint(5, 15)
+                b = random.randint(2, 8)
+                c = random.randint(1, 10)
+
+                operations = [
+                    (f"({a} + {b}) × {c}", (a + b) * c),
+                    (f"{a} × {b} - {c}", a * b - c),
+                    (f"{a} + {b} × {c}", a + b * c),
+                ]
+
+                problem, correct_answer = random.choice(operations)
+                problem += " = ?"
+
+            # Generar opciones incorrectas
+            options = [correct_answer]
+            while len(options) < 4:
+                wrong = correct_answer + random.randint(-10, 10)
+                if wrong not in options and wrong > 0:
+                    options.append(wrong)
+
             random.shuffle(options)
-            correct_index = options.index(result)
+            correct_index = options.index(correct_answer)
 
             return {
-                "problem": f"{a} + {b} = ?",
+                "problem": problem,
                 "options": options,
                 "correct": correct_index,
-                "reward_xp": 100,
-                "reward_besitos": 50,
+                "reward_xp": 80 + (user.level * 20),
+                "reward_besitos": 40 + (user.level * 10)
             }
 
         except Exception as e:
             print(f"Error generating math problem: {e}")
-            return None
+            return {
+                "problem": "2 + 2 = ?",
+                "options": [4, 3, 5, 6],
+                "correct": 0,
+                "reward_xp": 50,
+                "reward_besitos": 25
+            }
 
     # === CALLBACKS DE USUARIO ===
 

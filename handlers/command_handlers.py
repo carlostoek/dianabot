@@ -383,4 +383,25 @@ Diana {self._get_diana_opinion(trust_level)}
 *[Con aire ejecutivo]*
 
 🔧 **Controles Disponibles:**
-• Gestión de usuarios   
+• Gestión de usuarios
+• Revisar registros
+• Configuración del bot
+
+{self.lucien.EMOJIS['lucien']} *[A la espera de tus órdenes]*
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("👥 Usuarios", callback_data="manage_users")],
+                [InlineKeyboardButton("📝 Registros", callback_data="view_logs")],
+                [InlineKeyboardButton("⚙️ Ajustes", callback_data="bot_settings")],
+                [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.message.reply_text(
+                admin_message, reply_markup=reply_markup, parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en admin_command: {e}", exc_info=True)
+            await self._send_error_message(update, "Error mostrando panel de administrador")

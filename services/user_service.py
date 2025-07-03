@@ -636,6 +636,24 @@ class UserService:
             print(f"Error getting advanced users count: {e}")
             return 0
 
+    async def get_vip_users_count(self) -> int:
+        """Cuenta usuarios VIP activos"""
+        try:
+            from datetime import datetime
+
+            return (
+                self.db.query(func.count(User.id))
+                .filter(
+                    (User.is_vip == True)
+                    & ((User.vip_expires.is_(None)) | (User.vip_expires > datetime.now()))
+                )
+                .scalar()
+                or 0
+            )
+        except Exception as e:
+            print(f"Error getting VIP users count: {e}")
+            return 0
+
     async def get_users_paginated(self, page: int = 0, per_page: int = 10):
         """Obtiene usuarios paginados"""
         try:
@@ -1123,6 +1141,24 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
             return result or 0
         except Exception as e:
             print(f"Error getting advanced users count: {e}")
+            return 0
+
+    async def get_vip_users_count(self) -> int:
+        """Cuenta usuarios VIP activos"""
+        try:
+            from datetime import datetime
+
+            result = (
+                self.db.query(func.count(User.id))
+                .filter(
+                    (User.is_vip == True)
+                    & ((User.vip_expires.is_(None)) | (User.vip_expires > datetime.now()))
+                )
+                .scalar()
+            )
+            return result or 0
+        except Exception as e:
+            print(f"Error getting VIP users count: {e}")
             return 0
 
     async def get_users_paginated(self, page: int = 0, per_page: int = 10):

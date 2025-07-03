@@ -11,6 +11,9 @@ from handlers.start_handler import StartHandler
 from handlers.callback_handler_narrative import CallbackHandlerNarrative
 from handlers.command_handlers import CommandHandlers
 from config.database import get_db, init_db
+from services.mission_service import MissionService
+from services.notification_service import NotificationService
+from services.channel_service import ChannelService
 
 # Configurar logging
 logging.basicConfig(
@@ -33,8 +36,17 @@ class DianaBot:
         # Crear aplicación
         self.application = Application.builder().token(self.token).build()
 
+        # Servicios básicos
+        self.mission_service = MissionService()
+        self.notification_service = NotificationService()
+        self.channel_service = ChannelService()
+
+        # Pasar instancia del bot al servicio de notificaciones
+        self.notification_service.set_bot(self.application.bot)
+
         # Configurar handlers
         self._setup_handlers()
+        self._setup_jobs()
 
     def _setup_handlers(self):
         """Configura todos los handlers del bot"""
@@ -64,6 +76,18 @@ class DianaBot:
         self.application.add_error_handler(self._error_handler)
 
         logger.info("✅ Handlers configurados correctamente")
+
+    def _setup_jobs(self):
+        """Configura trabajos periódicos del bot"""
+
+        self.application.job_queue.run_repeating(
+            self._send_pending_notifications,
+            interval=60,
+            first=5,
+        )
+
+    async def _send_pending_notifications(self, context):
+        await self.notification_service.send_pending_notifications()
 
     async def _error_handler(self, update, context):
         """Maneja errores elegantemente"""

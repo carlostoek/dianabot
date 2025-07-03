@@ -5,6 +5,7 @@ from models.user import User
 from config.database import get_db
 from utils.lucien_voice import LucienVoice
 from typing import Optional, List, Dict, Any
+from services.channel_service import ChannelService
 from datetime import datetime, timedelta
 import json
 import logging
@@ -17,6 +18,7 @@ class AdminService:
     def __init__(self):
         self.db = next(get_db())
         self.lucien = LucienVoice()
+        self.channel_service = ChannelService()
 
         # Permisos por nivel de admin
         self.LEVEL_PERMISSIONS = {
@@ -120,6 +122,40 @@ class AdminService:
                 }
 
         return {"allowed": True}
+
+    def generate_vip_token(self, admin_telegram_id: int, token_type: str) -> Dict[str, Any]:
+        """Genera un token VIP para un usuario específico"""
+
+        # Verificar si el admin tiene permiso
+        if not self.has_permission(admin_telegram_id, AdminPermission.GENERATE_VIP_TOKENS):
+            return {"error": "Sin permisos para generar tokens VIP"}
+
+        # Verificar límites diarios de generación
+        can_generate = self.can_perform_action(admin_telegram_id, "generate_vip_token")
+        if not can_generate["allowed"]:
+            return {"error": can_generate["reason"]}
+
+        # Lógica para generar el token mediante ChannelService
+        token_info = self.channel_service.create_vip_token(admin_telegram_id, token_type)
+
+        # Registrar acción
+        self.log_admin_action(
+            admin_telegram_id=admin_telegram_id,
+            action_type=f"generate_{token_type}_vip_token",
+            action_description=f"Token VIP {token_type}",
+            success=token_info.get("success", False),
+            error_message=token_info.get("error", "")
+        )
+
+        if token_info.get("success"):
+            return {
+                "success": True,
+                "token": token_info["token"],
+                "expiry": token_info["expiry"],
+                "message": "Token VIP generado exitosamente."
+            }
+        else:
+            return {"error": token_info.get("error", "Error desconocido al generar el token")}
 
     # ===== GESTIÓN DE ADMINISTRADORES =====
 

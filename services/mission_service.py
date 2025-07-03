@@ -130,8 +130,8 @@ class MissionService:
 
         return self.assign_daily_missions(user_id)
 
-    async def get_user_active_missions(self, telegram_id: int) -> List[dict]:
-        """Devuelve misiones activas del usuario"""
+    def get_user_active_missions(self, telegram_id: int) -> List[dict]:
+        """Devuelve misiones activas del usuario - SÍNCRONO"""
         try:
             user = (
                 self.db.query(User)
@@ -157,8 +157,8 @@ class MissionService:
             print(f"Error getting user active missions: {e}")
             return []
 
-    async def get_user_completed_missions_count(self, telegram_id: int) -> int:
-        """Cuenta misiones completadas del usuario"""
+    def get_user_completed_missions_count(self, telegram_id: int) -> int:
+        """Cuenta misiones completadas del usuario - SÍNCRONO"""
         try:
             user = (
                 self.db.query(User)

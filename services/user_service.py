@@ -8,10 +8,11 @@ from models.narrative_state import (
     EmotionalResponse,
 )
 from models.mission import Mission
-from config.database import get_db
+from config.database import get_db, SessionLocal
 from utils.lucien_voice import LucienVoice
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
+from contextlib import contextmanager
 import random
 
 
@@ -21,6 +22,15 @@ class UserService:
     def __init__(self):
         self.db = next(get_db())
         self.lucien = LucienVoice()
+
+    @contextmanager
+    def get_db_session(self):
+        """Provide a transactional scope around a series of operations."""
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
 
     def get_or_create_user(
         self,
@@ -1184,8 +1194,8 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
             print(f"Error getting paginated users: {e}")
             return []
 
-    async def calculate_xp_for_level(self, target_level: int) -> int:
-        """Calcula XP necesaria para un nivel específico"""
+    def calculate_xp_for_level(self, target_level: int) -> int:
+        """Calcula XP necesaria para un nivel específico - SÍNCRONO"""
         return (target_level ** 2) * 100 + target_level * 50
 
     def calculate_daily_gift(self, user_id: int) -> dict:
@@ -1237,8 +1247,8 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
             print(f"Error giving daily gift: {e}")
             return False
 
-    async def get_user_lore_pieces(self, user_id: int):
-        """Obtiene piezas de historia del usuario"""
+    def get_user_lore_pieces(self, user_id: int):
+        """Obtiene piezas de historia del usuario - SÍNCRONO"""
         try:
             return []
         except Exception as e:

@@ -1284,4 +1284,16 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
         except Exception as e:
             print(f"Error getting user ranking position: {e}")
             return 0
+
+    async def update_user(self, user):
+        """Actualiza datos del usuario en la base de datos"""
+        try:
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            return True
+        except Exception as e:
+            print(f"Error updating user: {e}")
+            self.db.rollback()
+            return False
    

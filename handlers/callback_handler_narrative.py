@@ -934,6 +934,28 @@ class CallbackHandlerNarrative:
 
             callback_data = query.data
 
+            # Manejar patrones de callback
+            if callback_data.startswith('trivia_answer_'):
+                return await self.handle_trivia_answer(update, context)
+            elif callback_data.startswith('math_answer_'):
+                return await self.handle_math_answer(update, context)
+
+            routing = {
+                'trivia_answer_0': self.handle_trivia_answer,
+                'trivia_answer_1': self.handle_trivia_answer,
+                'trivia_answer_2': self.handle_trivia_answer,
+                'trivia_answer_3': self.handle_trivia_answer,
+                'math_answer_0': self.handle_math_answer,
+                'math_answer_1': self.handle_math_answer,
+                'math_answer_2': self.handle_math_answer,
+                'math_answer_3': self.handle_math_answer,
+                'backpack_view_clues': self.handle_backpack_view_clues,
+                'backpack_progress': self.handle_backpack_progress,
+            }
+
+            if callback_data in routing:
+                return await routing[callback_data](update, context)
+
             # === NARRATIVA NIVEL 1 ===
             if callback_data == "discover_more" or callback_data == "level1_scene2":
                 await self._handle_level1_scene2(update, context, user, narrative_state)
@@ -2539,6 +2561,155 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
                 "reward_besitos": 25
             }
 
+    async def handle_trivia_answer(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Procesa respuesta de trivia"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            answer_index = int(query.data.split('_')[-1])
+
+            current_trivia = context.user_data.get('current_trivia')
+            if not current_trivia:
+                await self._send_error_message(update, context, "No se encontró pregunta activa")
+                return
+
+            await query.answer()
+
+            is_correct = answer_index == current_trivia['correct']
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+
+            if is_correct:
+                user.experience += current_trivia['reward_xp']
+                user.besitos += current_trivia['reward_besitos']
+
+                level_up = await self._check_level_up(user)
+
+                result_text = (
+                    f"🎉 *¡Respuesta Correcta!*\n\n"
+                    f"✅ **{current_trivia['options'][answer_index]}** es correcto.\n\n"
+                    f"🏆 **Recompensas obtenidas:**\n"
+                    f"• +{current_trivia['reward_xp']} XP\n"
+                    f"• +{current_trivia['reward_besitos']} besitos\n\n"
+                )
+
+                if level_up:
+                    result_text += f"🌟 **¡NIVEL SUBIDO!** Ahora eres nivel {user.level}\n\n"
+
+                result_text += (
+                    f"📊 **Tu progreso:**\n"
+                    f"• Nivel: {user.level}\n"
+                    f"• XP: {user.experience}\n"
+                    f"• Besitos: {user.besitos}"
+                )
+
+            else:
+                result_text = (
+                    f"❌ *Respuesta Incorrecta*\n\n"
+                    f"La respuesta correcta era: **{current_trivia['options'][current_trivia['correct']]}**\n\n"
+                    f"💡 **Explicación:** {current_trivia.get('explanation', 'Sigue practicando para mejorar.')}\n\n"
+                    f"¡No te desanimes, inténtalo de nuevo!"
+                )
+
+            await self.user_service.update_user(user)
+            context.user_data.pop('current_trivia', None)
+
+            keyboard = [
+                [InlineKeyboardButton("🧠 Nueva Trivia", callback_data="game_trivia_quick")],
+                [InlineKeyboardButton("🎮 Otros Juegos", callback_data="user_games")],
+                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]
+            ]
+
+            await query.edit_message_text(
+                result_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al procesar respuesta: {str(e)}")
+
+    async def handle_math_answer(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Procesa respuesta de desafío matemático"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            answer_index = int(query.data.split('_')[-1])
+
+            math_game = context.user_data.get('math_game')
+            if not math_game:
+                await self._send_error_message(update, context, "No se encontró desafío activo")
+                return
+
+            await query.answer()
+
+            is_correct = answer_index == math_game['correct']
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+
+            if is_correct:
+                user.experience += math_game['reward_xp']
+                user.besitos += math_game['reward_besitos']
+
+                level_up = await self._check_level_up(user)
+
+                result_text = (
+                    f"🎯 *¡Excelente Cálculo!*\n\n"
+                    f"✅ **{math_game['options'][answer_index]}** es correcto.\n\n"
+                    f"🏆 **Recompensas:**\n"
+                    f"• +{math_game['reward_xp']} XP\n"
+                    f"• +{math_game['reward_besitos']} besitos\n\n"
+                )
+
+                if level_up:
+                    result_text += f"🌟 **¡NIVEL SUBIDO!** Ahora eres nivel {user.level}\n\n"
+
+                result_text += (
+                    f"📊 **Estado:** Nivel {user.level} | XP: {user.experience} | Besitos: {user.besitos}"
+                )
+
+            else:
+                correct_answer = math_game['options'][math_game['correct']]
+                result_text = (
+                    f"❌ *Intento Fallido*\n\n"
+                    f"La respuesta correcta era: **{correct_answer}**\n\n"
+                    f"📚 **Consejo:** Practica más operaciones matemáticas básicas.\n\n"
+                    f"¡La práctica hace al maestro!"
+                )
+
+            await self.user_service.update_user(user)
+            context.user_data.pop('math_game', None)
+
+            keyboard = [
+                [InlineKeyboardButton("➕ Nuevo Desafío", callback_data="game_math")],
+                [InlineKeyboardButton("🎮 Otros Juegos", callback_data="user_games")],
+                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]
+            ]
+
+            await query.edit_message_text(
+                result_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al procesar desafío: {str(e)}")
+
+    async def _check_level_up(self, user) -> bool:
+        """Verifica y procesa subida de nivel"""
+        try:
+            required_xp = await self.user_service.calculate_xp_for_level(user.level + 1)
+
+            if user.experience >= required_xp:
+                user.level += 1
+                return True
+
+            return False
+        except Exception as e:
+            print(f"Error checking level up: {e}")
+            return False
+
+
     # === CALLBACKS DE USUARIO ===
 
     async def handle_user_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2684,6 +2855,88 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
 
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar mochila: {str(e)}")
+
+    async def handle_backpack_view_clues(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra pistas de la mochila"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+            lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
+
+            if not lore_pieces:
+                clues_text = (
+                    f"🔍 *Tus Pistas*\n\n"
+                    f"📝 Aún no tienes pistas descubiertas.\n\n"
+                    f"💡 **Cómo obtener pistas:**\n"
+                    f"• Completar misiones\n"
+                    f"• Participar en eventos\n"
+                    f"• Interactuar con la narrativa\n"
+                    f"• Alcanzar nuevos niveles"
+                )
+            else:
+                clues_text = f"🔍 *Tus Pistas* ({len(lore_pieces)})\n\n"
+
+                for i, clue in enumerate(lore_pieces[:5]):
+                    clues_text += f"🔹 **{clue.get('title', f'Pista {i+1}')}**\n"
+                    clues_text += f"   {clue.get('description', 'Descripción no disponible')[:50]}...\n\n"
+
+                if len(lore_pieces) > 5:
+                    clues_text += f"... y {len(lore_pieces) - 5} pistas más\n\n"
+
+            keyboard = [
+                [InlineKeyboardButton("📂 Por Categorías", callback_data="backpack_categories")],
+                [InlineKeyboardButton("🔄 Combinar Pistas", callback_data="backpack_combine")],
+                [InlineKeyboardButton("🔙 Volver a Mochila", callback_data="user_backpack")]
+            ]
+
+            await query.edit_message_text(
+                clues_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar pistas: {str(e)}")
+
+    async def handle_backpack_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra progreso narrativo del usuario"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+            lore_pieces = await self.user_service.get_user_lore_pieces(user_id)
+
+            progress_text = (
+                f"📈 *Tu Progreso Narrativo*\n\n"
+                f"👤 **Perfil:**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Experiencia: {user.experience}\n"
+                f"• Arquetipo: {getattr(user, 'archetype', 'No definido')}\n\n"
+                f"🎒 **Colección:**\n"
+                f"• Pistas totales: {len(lore_pieces)}\n"
+                f"• Objetos especiales: 0\n"
+                f"• Combinaciones realizadas: 0\n\n"
+                f"🎯 **Siguiente objetivo:**\n"
+                f"Alcanzar nivel {user.level + 1} para desbloquear nuevas historias."
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("🎯 Ver Misiones", callback_data="user_missions")],
+                [InlineKeyboardButton("🔍 Ver Pistas", callback_data="backpack_view_clues")],
+                [InlineKeyboardButton("🔙 Volver a Mochila", callback_data="user_backpack")]
+            ]
+
+            await query.edit_message_text(
+                progress_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar progreso: {str(e)}")
 
     async def handle_user_daily_gift(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Regalo diario del usuario"""

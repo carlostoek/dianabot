@@ -120,6 +120,11 @@ class MissionService:
 
         return created_missions
 
+    def create_daily_missions_for_user(self, user_id: int) -> List[Mission]:
+        """Alias para asignar misiones diarias a un usuario"""
+
+        return self.assign_daily_missions(user_id)
+
     def generate_personalized_missions(self, user_id: int) -> List[Dict[str, Any]]:
         """Genera misiones personalizadas para el usuario (dummy)."""
 

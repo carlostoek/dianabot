@@ -1025,7 +1025,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
 
         try:
             user_telegram_id = update.effective_user.id
-            first_name = getattr(user, "first_name", "Usuario")
+            first_name = getattr(user, 'first_name', 'Usuario')
 
             if not self.admin_service.has_permission(
                 user_telegram_id, AdminPermission.GENERATE_VIP_TOKENS
@@ -1055,8 +1055,6 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             keyboard = [
                 [InlineKeyboardButton("⚡ Token Rápido (24h)", callback_data="admin_token_quick")],
                 [InlineKeyboardButton("📅 Token Semanal (7 días)", callback_data="admin_token_weekly")],
-                [InlineKeyboardButton("🎯 Token Personalizado", callback_data="admin_token_custom")],
-                [InlineKeyboardButton("👤 Token para Usuario Específico", callback_data="admin_token_user")],
                 [InlineKeyboardButton("⬅️ Volver al Panel", callback_data="admin_panel")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -1064,7 +1062,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await update.callback_query.edit_message_text(
                 token_message,
                 reply_markup=reply_markup,
-                parse_mode="Markdown",
+                parse_mode="Markdown"
             )
 
         except Exception as e:
@@ -1313,29 +1311,51 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             parse_mode="Markdown",
         )
 
-    async def _generate_quick_vip_token(self, update, context, telegram_id: int):
-        """Genera un token VIP de 24h (simulado)"""
-        self.admin_service.log_admin_action(
-            admin_telegram_id=telegram_id,
-            action_type="generate_quick_vip_token",
-            action_description="Token VIP rápido",
-        )
+    async def _generate_quick_vip_token(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_telegram_id: int) -> None:
+        """Genera un token VIP rápido (24h)"""
 
-        await update.callback_query.edit_message_text(
-            "✅ Token VIP rápido generado (24h)", parse_mode="Markdown"
-        )
+        try:
+            result = self.admin_service.generate_vip_token(user_telegram_id, "quick")
 
-    async def _generate_weekly_vip_token(self, update, context, telegram_id: int):
-        """Genera un token VIP semanal (simulado)"""
-        self.admin_service.log_admin_action(
-            admin_telegram_id=telegram_id,
-            action_type="generate_weekly_vip_token",
-            action_description="Token VIP semanal",
-        )
+            if result.get("success"):
+                await update.callback_query.edit_message_text(
+                    f"🎫 **Token VIP Generado**\n\n"
+                    f"Token: `{result['token']}`\n"
+                    f"Expira: {result['expiry']}",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.callback_query.edit_message_text(
+                    f"❌ Error: {result.get('error', 'Error desconocido')}",
+                    parse_mode="Markdown"
+                )
 
-        await update.callback_query.edit_message_text(
-            "✅ Token VIP semanal generado (7 días)", parse_mode="Markdown"
-        )
+        except Exception as e:
+            logger.error(f"❌ Error en _generate_quick_vip_token: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _generate_weekly_vip_token(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user_telegram_id: int) -> None:
+        """Genera un token VIP semanal (7 días)"""
+
+        try:
+            result = self.admin_service.generate_vip_token(user_telegram_id, "weekly")
+
+            if result.get("success"):
+                await update.callback_query.edit_message_text(
+                    f"🎫 **Token VIP Generado**\n\n"
+                    f"Token: `{result['token']}`\n"
+                    f"Expira: {result['expiry']}",
+                    parse_mode="Markdown"
+                )
+            else:
+                await update.callback_query.edit_message_text(
+                    f"❌ Error: {result.get('error', 'Error desconocido')}",
+                    parse_mode="Markdown"
+                )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _generate_weekly_vip_token: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
 
     async def _show_admin_activity(self, update, context, telegram_id: int):
         """Muestra actividad del administrador"""

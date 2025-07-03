@@ -58,6 +58,24 @@ class ChannelService:
         self.TOKEN_EXPIRY_HOURS = 24
         self.AUTO_APPROVAL_MAX_DELAY = 180  # 3 horas máximo
 
+    def create_vip_token(self, user_telegram_id: int, token_type: str) -> Dict[str, Any]:
+        """Crea un token VIP para un usuario específico"""
+
+        if token_type == "quick":
+            expiry = datetime.utcnow() + timedelta(hours=24)
+        elif token_type == "weekly":
+            expiry = datetime.utcnow() + timedelta(days=7)
+        else:
+            return {"success": False, "error": "Tipo de token no válido"}
+
+        token = f"VIP-{user_telegram_id}-{int(expiry.timestamp())}"
+
+        return {
+            "success": True,
+            "token": token,
+            "expiry": expiry.isoformat(),
+        }
+
     # ===== GESTIÓN DE CANALES =====
 
     def create_channel(self, channel_data: Dict[str, Any]) -> Channel:

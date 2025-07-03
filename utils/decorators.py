@@ -8,6 +8,7 @@ from typing import Callable, Any
 from services.admin_service import AdminService
 from models.admin import AdminPermission, AdminLevel
 import logging
+from typing import Union, List
 
 logger = logging.getLogger(__name__)
 

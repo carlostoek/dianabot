@@ -209,6 +209,64 @@ class AdminService:
             "message": self._generate_admin_creation_message(admin)
         }
 
+    def create_first_admin_direct(
+        self,
+        telegram_id: int,
+        user_data: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Crea el primer super admin sin verificación de permisos"""
+
+        try:
+            # Verificar que NO existan administradores
+            existing_admins = self.get_all_admins(include_inactive=True)
+            if existing_admins:
+                return {"error": "Ya existen administradores en el sistema"}
+
+            # Verificar que no existe ya este usuario como admin
+            existing_admin = self.get_admin(telegram_id)
+            if existing_admin:
+                return {"error": "El usuario ya es administrador"}
+
+            # Configurar permisos de Super Admin
+            permissions = self._get_default_permissions_for_level(AdminLevel.SUPER_ADMIN)
+
+            admin = Admin(
+                telegram_id=telegram_id,
+                username=user_data.get("username") if user_data else None,
+                first_name=user_data.get("first_name") if user_data else None,
+                last_name=user_data.get("last_name") if user_data else None,
+                admin_level=AdminLevel.SUPER_ADMIN,
+                created_by_admin_id=None,  # Se crea a sí mismo
+                notes="Primer Super Admin del sistema",
+                **permissions
+            )
+
+            self.db.add(admin)
+            self.db.commit()
+            self.db.refresh(admin)
+
+            # Log de la acción histórica
+            self.log_admin_action(
+                admin_telegram_id=telegram_id,
+                action_type="first_admin_created",
+                action_description="Primer Super Admin creado en el sistema",
+                action_data=json.dumps({
+                    "first_admin_id": admin.id,
+                    "telegram_id": telegram_id,
+                    "created_at": datetime.utcnow().isoformat(),
+                }),
+            )
+
+            return {
+                "success": True,
+                "admin": admin,
+                "message": self._generate_admin_creation_message(admin),
+            }
+
+        except Exception as e:
+            logger.error(f"Error creando primer admin: {e}", exc_info=True)
+            return {"error": f"Error interno: {str(e)}"}
+
     def update_admin_permissions(
         self, 
         target_telegram_id: int, 

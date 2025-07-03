@@ -485,9 +485,14 @@ Diana {self._get_diana_opinion(trust_level)}
         user_id = update.effective_user.id
 
         try:
+            print(f"Admin panel access attempt by user: {user_id}")
+
             # Verificar permisos de admin
             admin = await self.admin_service.get_admin_by_user_id(user_id)
-            if not admin or not admin.is_active:
+            print(f"Admin found: {admin}")
+
+            if not admin:
+                print(f"No admin record found for user {user_id}")
                 await update.message.reply_text(
                     "❌ *Acceso Denegado*\n\n"
                     "No tienes permisos de administrador.\n"
@@ -496,39 +501,51 @@ Diana {self._get_diana_opinion(trust_level)}
                 )
                 return
 
+            if not admin.is_active:
+                print(f"Admin not active for user {user_id}")
+                await update.message.reply_text(
+                    "❌ *Cuenta de Administrador Inactiva*\n\n"
+                    "Tu cuenta de administrador está desactivada.\n"
+                    "Contacta a un super administrador.",
+                    parse_mode='Markdown'
+                )
+                return
+
+            print(f"Admin access granted for user {user_id}, role: {admin.role}")
+
             keyboard = [
                 [
                     InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users"),
-                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels"),
+                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels")
                 ],
                 [
                     InlineKeyboardButton("🎯 Misiones", callback_data="admin_missions"),
-                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions"),
+                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions")
                 ],
                 [
                     InlineKeyboardButton("🎮 Juegos", callback_data="admin_games"),
-                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore"),
+                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore")
                 ],
                 [
                     InlineKeyboardButton("📊 Estadísticas", callback_data="admin_detailed_analytics"),
-                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config"),
+                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config")
                 ],
                 [
                     InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_notifications"),
-                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-                ],
+                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
+                ]
             ]
 
             if admin.role == "super_admin":
                 keyboard.extend([
                     [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_pending_requests")],
                     [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
-                    [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")],
+                    [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")]
                 ])
 
             keyboard.extend([
                 [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
-                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]
             ])
 
             panel_text = (
@@ -547,7 +564,10 @@ Diana {self._get_diana_opinion(trust_level)}
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
+            print(f"Admin panel sent successfully to user {user_id}")
+
         except Exception as e:
+            print(f"Error in handle_admin_panel: {e}")
             await update.message.reply_text(
                 f"❌ Error al acceder al panel: {str(e)}",
                 parse_mode='Markdown'

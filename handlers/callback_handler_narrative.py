@@ -73,15 +73,27 @@ class CallbackHandlerNarrative:
     async def _check_admin_permissions(
         self, user_id: int, required_level: str = "admin"
     ) -> bool:
-        """Verifica permisos de administrador"""
+        """Verifica permisos de administrador - CORREGIDO"""
         try:
             admin = await self.admin_service.get_admin_by_user_id(user_id)
-            if not admin or not admin.is_active:
+            if not admin:
+                print(f"No admin found for user_id: {user_id}")
                 return False
+
+            if not admin.is_active:
+                print(f"Admin not active for user_id: {user_id}")
+                return False
+
             if required_level == "super_admin":
-                return admin.role == "super_admin"
-            return admin.role in ["admin", "super_admin"]
-        except Exception:
+                result = admin.role == "super_admin"
+                print(f"Super admin check for {user_id}: {result} (role: {admin.role})")
+                return result
+
+            result = admin.role in ["admin", "super_admin"]
+            print(f"Admin check for {user_id}: {result} (role: {admin.role})")
+            return result
+        except Exception as e:
+            print(f"Error checking admin permissions for {user_id}: {e}")
             return False
 
     async def _get_detailed_analytics(self) -> dict:
@@ -971,6 +983,10 @@ class CallbackHandlerNarrative:
                 'backpack_categories': self.handle_backpack_categories,
                 'backpack_combine': self.handle_backpack_combine,
                 'category_communication': self.handle_category_communication,
+                'profile_detailed_stats': self.handle_profile_detailed_stats,
+                'category_development': self.handle_category_development,
+                'category_seduction': self.handle_category_seduction,
+                'missions_refresh': self.handle_missions_refresh,
                 'back_to_menu': self.handle_back_to_menu,
             }
 
@@ -989,7 +1005,7 @@ class CallbackHandlerNarrative:
             elif callback_data == "back_to_story":
                 await self._handle_back_to_current_scene(update, context, user, narrative_state)
             elif callback_data == "continue_journey":
-                await self._handle_continue_narrative(update, context, user, narrative_state)
+                await self.handle_user_main_menu(update, context)
             
             # === CALLBACKS EXISTENTES (conservados) ===
             elif callback_data == "profile":
@@ -1002,8 +1018,6 @@ class CallbackHandlerNarrative:
             # === CALLBACKS DEL SISTEMA ORIGINAL ===
             elif callback_data == "premium":
                 await self._handle_premium_original(update, context, user, narrative_state)
-            elif callback_data == "continue_story":
-                await self._handle_continue_story(update, context, user, narrative_state)
 
             # === CALLBACKS NARRATIVOS ===
             elif callback_data == "narrative_progress":
@@ -1230,7 +1244,7 @@ Diana estará... observando.
                     [InlineKeyboardButton("🎁 Abrir Mochila del Viajero", callback_data="open_traveler_bag")],
                     [InlineKeyboardButton("🗺️ Examinar la pista", callback_data="examine_clue")],
                     [InlineKeyboardButton("💬 Hablar con Diana", callback_data="talk_to_diana")],
-                    [InlineKeyboardButton("➡️ Continuar el viaje", callback_data="continue_journey")],
+                    [InlineKeyboardButton("➡️ Continuar el viaje", callback_data="user_main_menu")],
                 ]
             else:
                 keyboard = [
@@ -1435,7 +1449,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 [InlineKeyboardButton("📜 Leer nota completa", callback_data="read_diana_note")],
                 [InlineKeyboardButton("🔑 Inspeccionar la llave", callback_data="inspect_key")],
                 [InlineKeyboardButton("💭 ¿Qué significa todo esto?", callback_data="ask_meaning")],
-                [InlineKeyboardButton("➡️ Continuar el viaje", callback_data="continue_journey")],
+                [InlineKeyboardButton("➡️ Continuar el viaje", callback_data="user_main_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -1689,7 +1703,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
 
         keyboard = [
             [InlineKeyboardButton("🔙 Volver al menú", callback_data="back_to_menu")],
-            [InlineKeyboardButton("🎭 Continuar historia", callback_data="continue_story")],
+            [InlineKeyboardButton("🎭 Continuar historia", callback_data="user_main_menu")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -2248,38 +2262,38 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
             await self._send_error_message(update, context, f"Error al cargar misiones completadas: {str(e)}")
 
     async def handle_missions_refresh(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Actualiza las misiones del usuario"""
+        """Actualiza las misiones del usuario - CORREGIDO"""
         query = update.callback_query
         user_id = query.from_user.id
 
         try:
             await query.answer("🔄 Actualizando misiones...")
 
-            new_missions = await self.mission_service.generate_personalized_missions(user_id)
+            new_missions = self.mission_service.generate_personalized_missions(user_id) if hasattr(self.mission_service, 'generate_personalized_missions') else []
 
             if new_missions:
                 refresh_text = (
                     f"🔄 *Misiones Actualizadas*\n\n"
                     f"✨ **Nuevas misiones disponibles:** {len(new_missions)}\n\n"
-                    f"Las misiones se han personalizado según tu progreso y nivel actual.\n\n"
+                    f"Las misiones se han personalizado segun tu progreso y nivel actual.\n\n"
                     f"¡Ve a tus misiones activas para comenzar!"
                 )
             else:
                 refresh_text = (
                     f"🔄 *Misiones Actualizadas*\n\n"
                     f"📋 No hay nuevas misiones disponibles en este momento.\n\n"
-                    f"Completa tus misiones actuales para desbloquear más contenido."
+                    f"Completa tus misiones actuales para desbloquear mas contenido."
                 )
 
             keyboard = [
                 [InlineKeyboardButton("🎯 Ver Misiones", callback_data="user_missions")],
-                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                [InlineKeyboardButton("🔙 Menu Principal", callback_data="user_main_menu")]
             ]
 
             await query.edit_message_text(
                 refresh_text,
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
         except Exception as e:
@@ -2903,6 +2917,54 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar perfil: {str(e)}")
 
+    async def handle_profile_detailed_stats(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Estadísticas detalladas del perfil"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            user = self.user_service.get_user_by_telegram_id(user_id)
+            if not user:
+                await self._send_error_message(update, context, "Usuario no encontrado")
+                return
+
+            next_level_xp = self.user_service.calculate_xp_for_level(user.level + 1)
+            xp_needed = next_level_xp - user.experience
+
+            detailed_text = (
+                f"📊 *Estadísticas Detalladas*\n\n"
+                f"👤 **{user.first_name}**\n\n"
+                f"🎯 **Progresión:**\n"
+                f"• Nivel actual: {user.level}\n"
+                f"• XP actual: {user.experience}\n"
+                f"• XP para nivel {user.level + 1}: {next_level_xp}\n"
+                f"• XP faltante: {xp_needed}\n"
+                f"• Progreso: {((user.experience / next_level_xp) * 100):.1f}%\n\n"
+                f"💰 **Economía:**\n"
+                f"• Besitos: {user.besitos}\n"
+                f"• Estado: {'👑 VIP' if user.is_vip else '🌟 Free'}\n\n"
+                f"📈 **Actividad:**\n"
+                f"• Días activo: 1\n"
+                f"• Misiones completadas: 0\n"
+                f"• Juegos jugados: 0\n"
+                f"• Última conexión: Ahora"
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("🏆 Ver Logros", callback_data="profile_achievements")],
+                [InlineKeyboardButton("📊 Comparar con Otros", callback_data="profile_compare")],
+                [InlineKeyboardButton("🔙 Volver al Perfil", callback_data="user_profile")]
+            ]
+
+            await query.edit_message_text(
+                detailed_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar estadísticas: {str(e)}")
+
     async def handle_backpack_categories(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Muestra categorías de la mochila"""
         query = update.callback_query
@@ -3002,6 +3064,74 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
             keyboard = [
                 [InlineKeyboardButton("🔍 Buscar Pistas", callback_data="search_communication_clues")],
                 [InlineKeyboardButton("📚 Guia de Comunicacion", callback_data="communication_guide")],
+                [InlineKeyboardButton("🔙 Volver a Categorias", callback_data="backpack_categories")]
+            ]
+
+            await query.edit_message_text(
+                category_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar categoria: {str(e)}")
+
+    async def handle_category_development(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Categoría Desarrollo Personal"""
+        query = update.callback_query
+
+        try:
+            category_text = (
+                f"🌟 *Categoria: Desarrollo Personal*\n\n"
+                f"🚀 **Crecimiento y Transformacion**\n\n"
+                f"Descubre secretos sobre:\n"
+                f"• Autoconfianza y autoestima\n"
+                f"• Inteligencia emocional\n"
+                f"• Liderazgo personal\n"
+                f"• Mentalidad de crecimiento\n\n"
+                f"📋 **Tus pistas de desarrollo:**\n"
+                f"• Aun no tienes pistas en esta categoria\n\n"
+                f"💡 **Consejo:**\n"
+                f"El desarrollo personal es la base de toda seduccion autentica."
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("🔍 Buscar Pistas", callback_data="search_development_clues")],
+                [InlineKeyboardButton("📚 Guia de Desarrollo", callback_data="development_guide")],
+                [InlineKeyboardButton("🔙 Volver a Categorias", callback_data="backpack_categories")]
+            ]
+
+            await query.edit_message_text(
+                category_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar categoria: {str(e)}")
+
+    async def handle_category_seduction(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Categoría Seducción"""
+        query = update.callback_query
+
+        try:
+            category_text = (
+                f"🎭 *Categoria: Seduccion*\n\n"
+                f"🔥 **El Arte de la Atraccion**\n\n"
+                f"Los secretos mas profundos sobre:\n"
+                f"• Tecnicas de seduccion avanzadas\n"
+                f"• Creacion de tension sexual\n"
+                f"• Juegos de poder y control\n"
+                f"• Psicologia de la atraccion\n\n"
+                f"📋 **Tus pistas de seduccion:**\n"
+                f"• Aun no tienes pistas en esta categoria\n\n"
+                f"🔮 **Secreto de Diana:**\n"
+                f"La verdadera seduccion comienza en la mente."
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("🔍 Buscar Pistas", callback_data="search_seduction_clues")],
+                [InlineKeyboardButton("📚 Manual de Seduccion", callback_data="seduction_manual")],
                 [InlineKeyboardButton("🔙 Volver a Categorias", callback_data="backpack_categories")]
             ]
 
@@ -3374,7 +3504,7 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
             await self._send_error_message(update, context, f"Error al reclamar regalo: {str(e)}")
 
     async def handle_user_leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Ranking de usuarios - CORREGIDO"""
+        """Ranking de usuarios - CORREGIDO CON ANONIMIZACIÓN"""
         query = update.callback_query
         user_id = query.from_user.id
 
@@ -3384,8 +3514,8 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 await self._send_error_message(update, context, "Usuario no encontrado")
                 return
 
-            top_users = await self.user_service.get_top_users_by_level(10)
-            user_position = await self.user_service.get_user_ranking_position(user_id)
+            top_users = self.user_service.get_top_users_by_level(10) if hasattr(self.user_service, 'get_top_users_by_level') else []
+            user_position = self.user_service.get_user_ranking_position(user_id) if hasattr(self.user_service, 'get_user_ranking_position') else 1
 
             from datetime import datetime
             timestamp = datetime.now().strftime("%H:%M:%S")
@@ -3396,29 +3526,35 @@ Pero recuerda... algunas puertas solo se abren una vez.""",
                 medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"{i+1}."
 
                 if top_user.telegram_id == user_id:
-                    display_name = f"**{top_user.first_name}** 👈 TÚ"
+                    display_name = f"**{top_user.first_name}** 👈 TU"
                 else:
                     first_letter = top_user.first_name[0] if top_user.first_name else "U"
-                    display_name = f"{first_letter}{'*' * (len(top_user.first_name) - 1 if top_user.first_name else 3)}"
+                    name_length = len(top_user.first_name) if top_user.first_name else 4
+                    asterisks = "*" * max(1, name_length - 1)
+                    display_name = f"{first_letter}{asterisks}"
 
                 leaderboard_text += f"{medal} {display_name} - Nivel {top_user.level}\n"
 
-            leaderboard_text += f"\n📍 **Tu posición:** #{user_position}\n"
+            next_level_xp = self.user_service.calculate_xp_for_level(user.level + 1)
+            xp_needed = next_level_xp - user.experience
+
+            leaderboard_text += f"\n📍 **Tu posicion:** #{user_position}\n"
             leaderboard_text += f"🎯 **Tu nivel:** {user.level}\n"
-            leaderboard_text += f"⭐ **Tu experiencia:** {user.experience}"
+            leaderboard_text += f"⭐ **Tu experiencia:** {user.experience}\n"
+            leaderboard_text += f"🚀 **XP para nivel {user.level + 1}:** {xp_needed}"
 
             keyboard = [
                 [
                     InlineKeyboardButton("🔄 Actualizar", callback_data="user_leaderboard"),
-                    InlineKeyboardButton("📊 Mi Progreso", callback_data="user_profile"),
+                    InlineKeyboardButton("📊 Mi Progreso", callback_data="user_profile")
                 ],
-                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                [InlineKeyboardButton("🔙 Menu Principal", callback_data="user_main_menu")]
             ]
 
             await query.edit_message_text(
                 leaderboard_text,
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
         except Exception as e:

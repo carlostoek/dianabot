@@ -605,7 +605,7 @@ class CallbackHandler:
 
         keyboard = [
             [InlineKeyboardButton("🎯 Continuar", callback_data="start_journey")],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
+            [InlineKeyboardButton("🔙 Volver", callback_data="user_main_menu")],
         ]
 
         await query.edit_message_text(
@@ -633,7 +633,7 @@ class CallbackHandler:
 
         keyboard = [
             [InlineKeyboardButton("🚀 Empezar", callback_data="start_journey")],
-            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
+            [InlineKeyboardButton("🔙 Volver", callback_data="user_main_menu")],
         ]
 
         await query.edit_message_text(

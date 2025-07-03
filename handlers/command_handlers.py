@@ -61,7 +61,7 @@ Lucien siempre está aquí para guiarte en tu camino hacia... conocer mejor a Di
             """.strip()
 
             keyboard = [
-                [InlineKeyboardButton("🎭 Menú Principal", callback_data="main_menu")],
+                [InlineKeyboardButton("🎭 Menú Principal", callback_data="user_main_menu")],
                 [InlineKeyboardButton("🎯 Empezar Misiones", callback_data="missions")],
                 [InlineKeyboardButton("👤 Ver Mi Perfil", callback_data="profile")],
             ]
@@ -137,7 +137,7 @@ Diana {self._get_diana_opinion(trust_level)}
                 [InlineKeyboardButton("📊 Ver perfil completo", callback_data="profile")],
                 [InlineKeyboardButton("📈 Estadísticas detalladas", callback_data="stats")],
                 [InlineKeyboardButton("🎯 Próximas misiones", callback_data="missions")],
-                [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
+                [InlineKeyboardButton("🎭 Menú principal", callback_data="user_main_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -192,7 +192,7 @@ Diana {self._get_diana_opinion(trust_level)}
             keyboard = [
                 [InlineKeyboardButton("🎯 Ver todas las misiones", callback_data="missions")],
                 [InlineKeyboardButton("🏆 Mis logros", callback_data="achievements")],
-                [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
+                [InlineKeyboardButton("🎭 Menú principal", callback_data="user_main_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -242,7 +242,7 @@ Diana {self._get_diana_opinion(trust_level)}
             keyboard = [
                 [InlineKeyboardButton("📊 Ver perfil completo", callback_data="profile")],
                 [InlineKeyboardButton("🎯 Mejorar estadísticas", callback_data="missions")],
-                [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
+                [InlineKeyboardButton("🎭 Menú principal", callback_data="user_main_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -296,7 +296,7 @@ Diana {self._get_diana_opinion(trust_level)}
             keyboard = [
                 [InlineKeyboardButton("🛍️ Explorar tienda", callback_data="shop")],
                 [InlineKeyboardButton("💰 ¿Cómo ganar besitos?", callback_data="earn_besitos")],
-                [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
+                [InlineKeyboardButton("🎭 Menú principal", callback_data="user_main_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -395,7 +395,7 @@ Diana {self._get_diana_opinion(trust_level)}
                 [InlineKeyboardButton("👥 Usuarios", callback_data="manage_users")],
                 [InlineKeyboardButton("📝 Registros", callback_data="view_logs")],
                 [InlineKeyboardButton("⚙️ Ajustes", callback_data="bot_settings")],
-                [InlineKeyboardButton("🎭 Menú principal", callback_data="main_menu")],
+                [InlineKeyboardButton("🎭 Menú principal", callback_data="user_main_menu")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -481,7 +481,7 @@ Diana {self._get_diana_opinion(trust_level)}
             await update.message.reply_text("❌ Error interno creando primer administrador.")
 
     async def handle_admin_panel(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /admin_panel - Acceso directo al panel de administración"""
+        """Comando /admin_panel - COMPLETAMENTE CORREGIDO"""
         user_id = update.effective_user.id
 
         try:
@@ -496,49 +496,49 @@ Diana {self._get_diana_opinion(trust_level)}
                 )
                 return
 
-            # Mostrar panel de administración
             keyboard = [
-                [InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")],
-                [InlineKeyboardButton("📊 Analytics Detallado", callback_data="admin_detailed_analytics")],
-                [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
+                [
+                    InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users"),
+                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels"),
+                ],
+                [
+                    InlineKeyboardButton("🎯 Misiones", callback_data="admin_missions"),
+                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions"),
+                ],
+                [
+                    InlineKeyboardButton("🎮 Juegos", callback_data="admin_games"),
+                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore"),
+                ],
+                [
+                    InlineKeyboardButton("📊 Estadísticas", callback_data="admin_detailed_analytics"),
+                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config"),
+                ],
+                [
+                    InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_notifications"),
+                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+                ],
             ]
 
-            # Solo super admins ven estas opciones
             if admin.role == "super_admin":
                 keyboard.extend([
                     [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_pending_requests")],
                     [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
-                    [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")]
+                    [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")],
                 ])
 
-            # Agregar menú completo de administración
             keyboard.extend([
-                [
-                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels"),
-                    InlineKeyboardButton("🎯 Misiones", callback_data="admin_missions")
-                ],
-                [
-                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions"),
-                    InlineKeyboardButton("🎮 Juegos", callback_data="admin_games")
-                ],
-                [
-                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore"),
-                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config")
-                ],
-                [
-                    InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_notifications"),
-                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
-                ]
+                [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
+                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
             ])
-
-            keyboard.append([InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")])
 
             panel_text = (
                 f"🏛️ *Panel de Administración*\n\n"
                 f"Bienvenido/a al Diván, {admin.name}\n"
                 f"Rol: {admin.role.title()}\n"
                 f"Nivel de acceso: {'Completo' if admin.role == 'super_admin' else 'Estándar'}\n\n"
-                f"Selecciona una opción:"
+                f"📊 **Panel de Control:**\n"
+                f"Desde aquí puedes administrar todos los aspectos de DianaBot.\n\n"
+                f"Selecciona la función que deseas gestionar:"
             )
 
             await update.message.reply_text(

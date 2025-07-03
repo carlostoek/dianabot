@@ -49,7 +49,7 @@ class CallbackHandlerNarrative:
             "Contacta a un administrador si crees que esto es un error.",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("🔙 Volver", callback_data="main_menu")]]
+                [[InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]]
             ),
         )
 
@@ -66,7 +66,7 @@ class CallbackHandlerNarrative:
             message,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("🔙 Volver", callback_data="main_menu")]]
+                [[InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]]
             ),
         )
 
@@ -122,10 +122,8 @@ class CallbackHandlerNarrative:
             print(f"Error getting analytics: {e}")
             return {}
 
-    async def handle_divan_access(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
-        """Maneja el acceso al panel de administración"""
+    async def handle_divan_access(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Maneja el acceso al panel de administración - CORREGIDO"""
         query = update.callback_query
         user_id = query.from_user.id
 
@@ -137,9 +135,26 @@ class CallbackHandlerNarrative:
             admin = await self.admin_service.get_admin_by_user_id(user_id)
 
             keyboard = [
-                [InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")],
-                [InlineKeyboardButton("📊 Analytics Detallado", callback_data="admin_detailed_analytics")],
-                [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
+                [
+                    InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="admin_users"),
+                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels"),
+                ],
+                [
+                    InlineKeyboardButton("🎯 Misiones", callback_data="admin_missions"),
+                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions"),
+                ],
+                [
+                    InlineKeyboardButton("🎮 Juegos", callback_data="admin_games"),
+                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore"),
+                ],
+                [
+                    InlineKeyboardButton("📊 Estadísticas", callback_data="admin_stats"),
+                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config"),
+                ],
+                [
+                    InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_notifications"),
+                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
+                ],
             ]
 
             if admin.role == "super_admin":
@@ -151,7 +166,7 @@ class CallbackHandlerNarrative:
                     ]
                 )
 
-            keyboard.append([InlineKeyboardButton("🔙 Volver", callback_data="main_menu")])
+            keyboard.append([InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")])
 
             await query.edit_message_text(
                 f"🏛️ *Panel de Administración*\n\n"
@@ -159,16 +174,15 @@ class CallbackHandlerNarrative:
                 f"Rol: {admin.role.title()}\n"
                 f"Nivel de acceso: {'Completo' if admin.role == 'super_admin' else 'Estándar'}\n\n"
                 f"Selecciona una opción:",
-                parse_mode="Markdown",
+                parse_mode='Markdown',
                 reply_markup=InlineKeyboardMarkup(keyboard),
             )
+
         except Exception as e:
             await self._send_error_message(update, context, f"Error al acceder al panel: {str(e)}")
 
-    async def handle_manage_users(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
-        """Gestión de usuarios"""
+    async def handle_manage_users(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de usuarios - CORREGIDO"""
         query = update.callback_query
         user_id = query.from_user.id
 
@@ -186,7 +200,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🔍 Buscar Usuario", callback_data="admin_search_user")],
                 [InlineKeyboardButton("📊 Estadísticas Detalladas", callback_data="admin_user_stats")],
                 [InlineKeyboardButton("⚠️ Usuarios Reportados", callback_data="admin_reported_users")],
-                [InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")],
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")],
             ]
 
             await query.edit_message_text(
@@ -434,7 +448,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_channel_pending")],
                 [InlineKeyboardButton("⚙️ Configurar Canal", callback_data="admin_channel_config")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_channel_stats")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             channels_text = (
@@ -478,7 +492,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🎯 Asignar Misiones", callback_data="admin_missions_assign")],
                 [InlineKeyboardButton("⚙️ Configurar Sistema", callback_data="admin_missions_config")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_missions_stats")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             missions_text = (
@@ -521,7 +535,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🏆 Gestionar Ranking", callback_data="admin_games_ranking")],
                 [InlineKeyboardButton("🎯 Ajustar Dificultad", callback_data="admin_games_difficulty")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_games_stats")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             games_text = (
@@ -571,7 +585,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("💰 Gestionar Pujas", callback_data="admin_auctions_bids")],
                 [InlineKeyboardButton("⚙️ Configuración", callback_data="admin_auctions_config")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_auctions_stats")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             auctions_text = (
@@ -610,7 +624,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🔮 Triggers Narrativos", callback_data="admin_lore_triggers")],
                 [InlineKeyboardButton("📖 Pistas y Objetos", callback_data="admin_lore_clues")],
                 [InlineKeyboardButton("🌟 Estados Narrativos", callback_data="admin_lore_states")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             lore_text = (
@@ -650,7 +664,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_config_notifications")],
                 [InlineKeyboardButton("👑 Configuración VIP", callback_data="admin_config_vip")],
                 [InlineKeyboardButton("🛡️ Seguridad", callback_data="admin_config_security")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             config_text = (
@@ -697,7 +711,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🎯 Notificaciones Dirigidas", callback_data="admin_notification_targeted")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_notifications_stats")],
                 [InlineKeyboardButton("⚙️ Configurar", callback_data="admin_notifications_config")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             notifications_text = (
@@ -741,7 +755,7 @@ class CallbackHandlerNarrative:
                 [InlineKeyboardButton("🏆 Por Arquetipo", callback_data="admin_broadcast_archetype")],
                 [InlineKeyboardButton("📱 Usuarios Activos", callback_data="admin_broadcast_active")],
                 [InlineKeyboardButton("📊 Historial", callback_data="admin_broadcast_history")],
-                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+                [InlineKeyboardButton("🔙 Panel Admin", callback_data="divan_access")]
             ]
 
             broadcast_text = (

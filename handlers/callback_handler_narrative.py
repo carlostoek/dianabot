@@ -994,13 +994,19 @@ class CallbackHandlerNarrative:
             elif callback_data == "settings":
                 await self._handle_unknown_callback_narrative(update, context, "settings")
             elif callback_data == "user_main_menu":
-                await self._show_main_menu_narrative(update, context, user, narrative_state)
+                await self.handle_user_main_menu(update, context)
+            elif callback_data == "user_profile":
+                await self.handle_user_profile(update, context)
             elif callback_data == "user_missions":
                 await self.handle_user_missions(update, context)
             elif callback_data == "user_games":
                 await self.handle_user_games(update, context)
             elif callback_data == "user_backpack":
                 await self.handle_user_backpack(update, context)
+            elif callback_data == "backpack_categories":
+                await self.handle_backpack_categories(update, context)
+            elif callback_data == "backpack_combine":
+                await self.handle_backpack_combine(update, context)
             elif callback_data == "user_daily_gift":
                 await self.handle_user_daily_gift(update, context)
             elif callback_data == "claim_daily_gift":
@@ -2712,6 +2718,202 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
 
     # === CALLBACKS DE USUARIO ===
 
+    async def handle_user_main_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Menú principal del usuario"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+            if not user:
+                await self._send_error_message(update, context, "Usuario no encontrado")
+                return
+
+            # Verificar si es admin
+            is_admin = False
+            try:
+                admin = self.admin_service.get_admin_by_user_id(user_id)
+                is_admin = admin and admin.is_active
+            except Exception:
+                pass
+
+            main_menu_text = (
+                f"🎭 *DianaBot - Menú Principal*\n\n"
+                f"*Lucien te recibe con elegancia...*\n\n"
+                f"\"¡Ah, {user.first_name}! Diana me comentó que podrías venir.\"\n\n"
+                f"📊 **Tu estado actual:**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Besitos: {user.besitos}\n"
+                f"• Estado: {'👑 VIP' if user.is_vip else '🌟 Miembro'}\n\n"
+                f"¿Qué deseas hacer?"
+            )
+
+            keyboard = [
+                [
+                    InlineKeyboardButton("👤 Mi Perfil", callback_data="user_profile"),
+                    InlineKeyboardButton("🎯 Misiones", callback_data="user_missions"),
+                ],
+                [
+                    InlineKeyboardButton("🎮 Juegos", callback_data="user_games"),
+                    InlineKeyboardButton("🎒 Mochila", callback_data="user_backpack"),
+                ],
+                [
+                    InlineKeyboardButton("🎁 Regalo Diario", callback_data="user_daily_gift"),
+                    InlineKeyboardButton("🏆 Ranking", callback_data="user_leaderboard"),
+                ],
+            ]
+
+            if user.is_vip or user.level >= 5:
+                keyboard.append([InlineKeyboardButton("🏆 Subastas VIP", callback_data="user_auctions")])
+
+            if is_admin:
+                keyboard.append([InlineKeyboardButton("🏛️ Panel de Administración", callback_data="divan_access")])
+
+            await query.edit_message_text(
+                main_menu_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar menú principal: {str(e)}")
+
+    async def handle_user_profile(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra el perfil completo del usuario"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+            if not user:
+                await self._send_error_message(update, context, "Usuario no encontrado")
+                return
+
+            next_level_xp = await self.user_service.calculate_xp_for_level(user.level + 1)
+            progress_percentage = (
+                (user.experience / next_level_xp) * 100 if next_level_xp > 0 else 100
+            )
+
+            profile_text = (
+                f"👤 *Perfil de {user.first_name}*\n\n"
+                f"📊 **Estadísticas:**\n"
+                f"• Nivel: {user.level}\n"
+                f"• Experiencia: {user.experience}/{next_level_xp}\n"
+                f"• Progreso: {progress_percentage:.1f}%\n"
+                f"• Besitos: {user.besitos}\n\n"
+                f"🎭 **Estado:**\n"
+                f"• Miembro desde: {user.created_at.strftime('%d/%m/%Y')}\n"
+                f"• Última actividad: {user.last_activity.strftime('%d/%m/%Y') if user.last_activity else 'Hoy'}\n"
+                f"• Estado: {'👑 VIP' if user.is_vip else '🌟 Miembro'}\n\n"
+                f"🏆 **Logros:**\n"
+                f"• Misiones completadas: 0\n"
+                f"• Partidas jugadas: 0\n"
+                f"• Días consecutivos: 1"
+            )
+
+            keyboard = [
+                [
+                    InlineKeyboardButton("📊 Estadísticas Detalladas", callback_data="profile_detailed_stats"),
+                    InlineKeyboardButton("🎒 Mi Mochila", callback_data="user_backpack"),
+                ],
+                [
+                    InlineKeyboardButton("⚙️ Configuración", callback_data="profile_settings"),
+                    InlineKeyboardButton("🏆 Mis Logros", callback_data="profile_achievements"),
+                ],
+            ]
+
+            if user.is_vip:
+                keyboard.append([InlineKeyboardButton("👑 Estado VIP", callback_data="profile_vip_status")])
+            else:
+                keyboard.append([InlineKeyboardButton("💎 ¿Cómo obtener VIP?", callback_data="profile_vip_info")])
+
+            keyboard.append([InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")])
+
+            await query.edit_message_text(
+                profile_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar perfil: {str(e)}")
+
+    async def handle_backpack_categories(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra categorías de la mochila"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            categories_text = (
+                f"📂 *Categorías de Pistas*\n\n"
+                f"🔍 **Organiza tu conocimiento:**\n\n"
+                f"🎭 **Seducción** (0 pistas)\n"
+                f"   Técnicas y secretos de atracción\n\n"
+                f"💬 **Comunicación** (0 pistas)\n"
+                f"   Arte de la conversación\n\n"
+                f"🧠 **Psicología** (0 pistas)\n"
+                f"   Comprende la mente humana\n\n"
+                f"🌟 **Desarrollo Personal** (0 pistas)\n"
+                f"   Crecimiento y confianza\n\n"
+                f"🔮 **Secretos de Diana** (0 pistas)\n"
+                f"   Misterios por descubrir"
+            )
+
+            keyboard = [
+                [
+                    InlineKeyboardButton("🎭 Seducción", callback_data="category_seduction"),
+                    InlineKeyboardButton("💬 Comunicación", callback_data="category_communication"),
+                ],
+                [
+                    InlineKeyboardButton("🧠 Psicología", callback_data="category_psychology"),
+                    InlineKeyboardButton("🌟 Desarrollo", callback_data="category_development"),
+                ],
+                [InlineKeyboardButton("🔮 Secretos", callback_data="category_secrets")],
+                [InlineKeyboardButton("🔙 Volver a Mochila", callback_data="user_backpack")],
+            ]
+
+            await query.edit_message_text(
+                categories_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar categorías: {str(e)}")
+
+    async def handle_backpack_combine(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Sistema de combinación de pistas"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            combine_text = (
+                f"🔄 *Combinar Pistas*\n\n"
+                f"🧩 **Alquimia del Conocimiento:**\n\n"
+                f"Combina pistas relacionadas para desbloquear secretos más profundos.\n\n"
+                f"📋 **Tus combinaciones disponibles:**\n"
+                f"• No tienes suficientes pistas para combinar\n\n"
+                f"💡 **Consejo:**\n"
+                f"Completa más misiones para obtener pistas que puedas combinar.\n\n"
+                f"🎯 **Próximo objetivo:**\n"
+                f"Obtén al menos 3 pistas de la misma categoría."
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("🔍 Ver Mis Pistas", callback_data="backpack_view_clues")],
+                [InlineKeyboardButton("📂 Categorías", callback_data="backpack_categories")],
+                [InlineKeyboardButton("🔙 Volver a Mochila", callback_data="user_backpack")],
+            ]
+
+            await query.edit_message_text(
+                combine_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar combinaciones: {str(e)}")
+
     async def handle_user_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Menú de misiones del usuario"""
         query = update.callback_query
@@ -2991,12 +3193,19 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await self._send_error_message(update, context, f"Error al cargar regalo diario: {str(e)}")
 
     async def handle_claim_daily_gift(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Procesa la reclamación del regalo diario"""
+        """Procesa la reclamación del regalo diario - CORREGIDO"""
         query = update.callback_query
         user_id = query.from_user.id
 
         try:
             await query.answer("🎁 Procesando regalo...")
+
+            # Calcular regalo antes de otorgarlo
+            gift_info = await self.user_service.calculate_daily_gift(user_id)
+
+            if not gift_info.get("can_claim", False):
+                await self._send_error_message(update, context, "No puedes reclamar el regalo en este momento")
+                return
 
             # Intentar otorgar el regalo
             success = await self.user_service.give_daily_gift(user_id)
@@ -3004,16 +3213,23 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             if success:
                 # Obtener información actualizada del usuario
                 user = await self.user_service.get_user_by_telegram_id(user_id)
-                gift_info = await self.user_service.calculate_daily_gift(user_id)
 
                 success_text = (
                     f"🎉 *¡Regalo Reclamado!*\n\n"
                     f"💰 **Has recibido:** {gift_info.get('besitos', 0)} besitos\n\n"
-                    f"📊 **Tu estado actual:**\n"
+                    f"📊 **Desglose:**\n"
+                    f"• Base: {gift_info.get('base', 0)} besitos\n"
+                    f"• Bonus nivel {user.level}: {gift_info.get('bonus', 0)} besitos\n"
+                )
+
+                if gift_info.get('multiplier', 1) > 1:
+                    success_text += f"• Multiplicador VIP: x{gift_info['multiplier']}\n"
+
+                success_text += (
+                    f"\n📊 **Tu estado actual:**\n"
                     f"• Besitos totales: {user.besitos}\n"
                     f"• Nivel: {user.level}\n"
-                    f"• Experiencia: {user.experience}\n\n"
-                    f"⏰ **Próximo regalo:** Mañana a las 00:00"
+                    f"• Experiencia: {user.experience}"
                 )
 
                 keyboard = [
@@ -3046,7 +3262,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await self._send_error_message(update, context, f"Error al reclamar regalo: {str(e)}")
 
     async def handle_user_leaderboard(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Ranking de usuarios"""
+        """Ranking de usuarios - CORREGIDO"""
         query = update.callback_query
         user_id = query.from_user.id
 
@@ -3059,11 +3275,21 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             top_users = await self.user_service.get_top_users_by_level(10)
             user_position = await self.user_service.get_user_ranking_position(user_id)
 
-            leaderboard_text = "🏆 *Ranking Global*\n\n"
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%H:%M:%S")
+
+            leaderboard_text = f"🏆 *Ranking Global* (Actualizado: {timestamp})\n\n"
+
             for i, top_user in enumerate(top_users):
                 medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"{i+1}."
-                is_current = "👈 TÚ" if top_user.telegram_id == user_id else ""
-                leaderboard_text += f"{medal} **{top_user.first_name}** - Nivel {top_user.level} {is_current}\n"
+
+                if top_user.telegram_id == user_id:
+                    display_name = f"**{top_user.first_name}** 👈 TÚ"
+                else:
+                    first_letter = top_user.first_name[0] if top_user.first_name else "U"
+                    display_name = f"{first_letter}{'*' * (len(top_user.first_name) - 1 if top_user.first_name else 3)}"
+
+                leaderboard_text += f"{medal} {display_name} - Nivel {top_user.level}\n"
 
             leaderboard_text += f"\n📍 **Tu posición:** #{user_position}\n"
             leaderboard_text += f"🎯 **Tu nivel:** {user.level}\n"

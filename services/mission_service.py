@@ -130,12 +130,63 @@ class MissionService:
 
         return self.assign_daily_missions(user_id)
 
+    async def get_user_active_missions(self, telegram_id: int) -> List[dict]:
+        """Devuelve misiones activas del usuario"""
+        try:
+            user = (
+                self.db.query(User)
+                .filter(User.telegram_id == telegram_id)
+                .first()
+            )
+            if not user:
+                return []
+
+            missions = (
+                self.db.query(Mission)
+                .filter(
+                    Mission.user_id == user.id,
+                    Mission.status == MissionStatus.ACTIVE,
+                    or_(Mission.expires_at.is_(None), Mission.expires_at > datetime.utcnow()),
+                )
+                .order_by(Mission.created_at.desc())
+                .all()
+            )
+
+            return [{"id": m.id, "title": m.title} for m in missions]
+        except Exception as e:
+            print(f"Error getting user active missions: {e}")
+            return []
+
+    async def get_user_completed_missions_count(self, telegram_id: int) -> int:
+        """Cuenta misiones completadas del usuario"""
+        try:
+            user = (
+                self.db.query(User)
+                .filter(User.telegram_id == telegram_id)
+                .first()
+            )
+            if not user:
+                return 0
+
+            return (
+                self.db.query(func.count(Mission.id))
+                .filter(
+                    Mission.user_id == user.id,
+                    Mission.status == MissionStatus.COMPLETED,
+                )
+                .scalar()
+                or 0
+            )
+        except Exception as e:
+            print(f"Error getting completed missions count: {e}")
+            return 0
+
     async def generate_personalized_missions(self, user_id: int):
         """Genera misiones personalizadas para el usuario"""
         try:
             from services.user_service import UserService
             user_service = UserService()
-            user = user_service.get_user_by_telegram_id(user_id)
+            user = await user_service.get_user_by_telegram_id(user_id)
             if not user:
                 return []
 

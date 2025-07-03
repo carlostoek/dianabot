@@ -588,6 +588,60 @@ class CallbackHandler:
             parse_mode="Markdown"
         )
 
+    async def _show_lucien_intro(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra introducción de Lucien"""
+        query = update.callback_query
+
+        intro_text = (
+            "🎭 *Conoce a Lucien*\n\n"
+            "Soy Lucien, el narrador de esta historia. Mi voz guía cada paso "
+            "de tu viaje a través de los misterios de la seducción.\n\n"
+            "🌟 **Mi papel:**\n"
+            "• Narrar tu progreso\n"
+            "• Revelar secretos ocultos\n"
+            "• Guiarte en tu transformación\n\n"
+            "¿Estás listo para escuchar mi voz?"
+        )
+
+        keyboard = [
+            [InlineKeyboardButton("🎯 Continuar", callback_data="start_journey")],
+            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
+        ]
+
+        await query.edit_message_text(
+            intro_text,
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    async def _show_bot_intro(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra introducción del bot"""
+        query = update.callback_query
+
+        intro_text = (
+            "🤖 *Sobre DianaBot*\n\n"
+            "Soy Diana, tu compañera en este viaje de autodescubrimiento. "
+            "Combino gamificación, narrativa inmersiva y crecimiento personal.\n\n"
+            "🎮 **Características:**\n"
+            "• Sistema de misiones personalizadas\n"
+            "• Juegos interactivos\n"
+            "• Progresión por niveles\n"
+            "• Narrativa adaptativa\n"
+            "• Comunidad VIP exclusiva\n\n"
+            "¡Comencemos tu transformación!"
+        )
+
+        keyboard = [
+            [InlineKeyboardButton("🚀 Empezar", callback_data="start_journey")],
+            [InlineKeyboardButton("🔙 Volver", callback_data="main_menu")],
+        ]
+
+        await query.edit_message_text(
+            intro_text,
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
     # === CALLBACKS DE NAVEGACIÓN ===
 
     async def _handle_back_to_menu(

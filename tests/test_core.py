@@ -1,3 +1,6 @@
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+import asyncio
 import pytest
 from services.user_service import UserService
 from services.mission_service import MissionService

@@ -1021,4 +1021,12 @@ Bienvenido al círculo íntimo. Diana está... complacida.
         except Exception as e:
             print(f"Error getting active channels count: {e}")
             return 0
+
+    async def _schedule_auto_approval(self, channel_id: int, delay_hours: int = 24):
+        """Programa aprobación automática de canal"""
+        try:
+            from jobs.scheduler import schedule_channel_auto_approval
+            await schedule_channel_auto_approval(channel_id, delay_hours)
+        except Exception as e:
+            print(f"Error scheduling auto approval: {e}")
    

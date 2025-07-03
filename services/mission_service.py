@@ -130,11 +130,42 @@ class MissionService:
 
         return self.assign_daily_missions(user_id)
 
-    def generate_personalized_missions(self, user_id: int) -> List[Dict[str, Any]]:
-        """Genera misiones personalizadas para el usuario (dummy)."""
+    async def generate_personalized_missions(self, user_id: int):
+        """Genera misiones personalizadas para el usuario"""
+        try:
+            from services.user_service import UserService
+            user_service = UserService()
+            user = user_service.get_user_by_telegram_id(user_id)
+            if not user:
+                return []
 
-        # Placeholder: Devuelve lista vacía
-        return []
+            basic_missions = [
+                {
+                    "title": "Primer Paso",
+                    "description": "Completa tu perfil",
+                    "reward_xp": 100,
+                    "reward_besitos": 50,
+                    "type": "profile",
+                },
+                {
+                    "title": "Explorador",
+                    "description": "Juega 3 partidas de trivia",
+                    "reward_xp": 150,
+                    "reward_besitos": 75,
+                    "type": "games",
+                },
+            ]
+
+            available_missions = []
+            for mission in basic_missions:
+                if mission["type"] == "profile" or user.level >= 1:
+                    available_missions.append(mission)
+
+            return available_missions[:3]
+
+        except Exception as e:
+            print(f"Error generating personalized missions: {e}")
+            return []
 
     def check_mission_completion(
         self, mission_id: int, user_action: Dict[str, Any] = None

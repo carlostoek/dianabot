@@ -1,62 +1,36 @@
-
 """Scheduled background jobs used by the bot."""
 
 from datetime import datetime, timedelta
-
-"""Scheduled jobs for periodic tasks."""
+import asyncio
 
 from services.mission_service import MissionService
 from services.channel_service import ChannelService
 from services.notification_service import NotificationService
-
-
-def generate_daily_missions_for_all_users():
-    """Generate daily missions for every registered user."""
-
-    mission_service = MissionService()
-    users = mission_service.get_all_users()
-
-    for user in users:
-        mission_service.create_daily_missions_for_user(user.id)
-
-
-from models.auction import Auction, AuctionStatus
 from services.auction_service import AuctionService
-from services.channel_service import ChannelService
-from services.mission_service import MissionService
-from services.notification_service import NotificationService
 from services.user_service import UserService
+from models.auction import Auction, AuctionStatus
 
 
-def generate_daily_missions_for_all_users() -> None:
+async def generate_daily_missions_for_all_users() -> None:
     """Generate daily missions for every active user."""
-
-user_service = UserService()
-
-mission_service = MissionService()
-
-def auto_approve_channel_requests():
-
-    """Approve all pending join requests in every channel."""
-
-    channel_service = ChannelService()
-
-    channels = channel_service.get_all_channels()
-
-    for channel in channels:
-
-        channel_service.approve_pending_requests(channel.id)
-
+    user_service = UserService()
+    mission_service = MissionService()
     users = user_service.get_all_users()
     for user in users:
         mission_service.create_daily_missions_for_user(user.id)
 
 
-def process_auction_endings() -> None:
+async def auto_approve_channel_requests() -> None:
+    """Automatically approve pending channel requests when the delay has passed."""
+    channel_service = ChannelService()
+    pending_memberships = channel_service.get_pending_auto_approvals()
+    for membership in pending_memberships:
+        channel_service.approve_join_request(membership.id, auto_approved=True)
+
+
+async def process_auction_endings() -> None:
     """Close auctions that have reached their ending time."""
-
     auction_service = AuctionService()
-
     ending_auctions = (
         auction_service.db.query(Auction)
         .filter(
@@ -65,39 +39,23 @@ def process_auction_endings() -> None:
         )
         .all()
     )
-
     for auction in ending_auctions:
         auction_service.end_auction(auction.id)
 
 
-def auto_approve_channel_requests() -> None:
-    """Automatically approve pending channel requests when the delay has passed."""
-
-    channel_service = ChannelService()
-
-    pending_memberships = channel_service.get_pending_auto_approvals()
-
-    for membership in pending_memberships:
-        channel_service.approve_join_request(membership.id, auto_approved=True)
-
-
-def update_user_progression() -> None:
+async def update_user_progression() -> None:
     """Check progression related tasks for each user."""
-
     user_service = UserService()
     channel_service = ChannelService()
-
     users = user_service.get_all_users()
     for user in users:
         channel_service.check_automatic_vip_access(user.id)
 
 
-def check_vip_expiring() -> None:
-    """Notify users when their VIP status is about to expire."""
-
+async def check_vip_expiring() -> None:
+    """Notify users whose VIP status is about to expire."""
     notification_service = NotificationService()
     users = notification_service.get_all_vip_users()
-
     for user in users:
         if user.vip_expires_soon():
             notification_service.notify_vip_status(
@@ -105,19 +63,9 @@ def check_vip_expiring() -> None:
             )
 
 
-def update_user_progression():
-    print("Actualizando progresión de usuarios (placeholder)")
-
-
-def check_vip_expiring():
-    """Notify users whose VIP status is about to expire."""
-
-    notification_service = NotificationService()
-    users = notification_service.get_all_vip_users()
-
-    for user in users:
-        if user.vip_expires_soon():
-            notification_service.notify_vip_status(
-                user.id, "expiring", {"days_left": user.days_left()}
-            )
+async def schedule_channel_auto_approval(channel_id: int, delay_hours: int = 24) -> None:
+    """Schedule automatic channel approval after a delay."""
+    await asyncio.sleep(delay_hours * 3600)
+    channel_service = ChannelService()
+    channel_service.approve_pending_requests(channel_id)
 

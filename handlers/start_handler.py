@@ -185,6 +185,7 @@ Dice que tienes potencial para algo... especial."
             logger.error(f"❌ Error en _send_new_user_experience: {e}", exc_info=True)
             await self._send_simple_error(update)
 
+
     async def _send_returning_user_experience(
         self,
         update: Update,
@@ -192,15 +193,31 @@ Dice que tienes potencial para algo... especial."
         user: Any,
         is_admin: bool = False,
     ) -> None:
-        """Experiencia para usuarios recurrentes - ACTUALIZADA"""
-        
+        """Experiencia para usuarios recurrentes - CON LOGS DETALLADOS"""
+
         logger.info("🔍 Iniciando _send_returning_user_experience...")
-        
+
         try:
             first_name = getattr(user, 'first_name', 'Usuario')
             level = getattr(user, 'level', 1)
             besitos = getattr(user, 'besitos', 0)
-            
+            user_id = getattr(user, 'telegram_id', 0)
+
+            logger.info(f"🔍 Usuario: {first_name}, Level: {level}, Admin: {is_admin}")
+
+            # VERIFICAR ADMIN DE NUEVO PARA ESTAR SEGUROS
+            try:
+                admin_check = await self.admin_service.get_admin_by_user_id(user_id)
+                logger.info(f"🔍 Admin check result: {admin_check}")
+                if admin_check:
+                    logger.info(
+                        f"🔍 Admin details: name={admin_check.name}, role={admin_check.role}, active={admin_check.is_active}"
+                    )
+                    is_admin = admin_check.is_active and admin_check.role in ["admin", "super_admin"]
+                    logger.info(f"🔍 Final admin status: {is_admin}")
+            except Exception as e:
+                logger.error(f"❌ Error re-checking admin: {e}")
+
             # Mensaje personalizado según el nivel
             if level >= 10:
                 status_msg = "Un maestro ha regresado..."
@@ -225,7 +242,7 @@ Dice que tienes potencial para algo... especial."
 ¿Qué deseas hacer hoy?"""
 
             keyboard = []
-            
+
             # Opciones principales para usuarios recurrentes
             keyboard.extend([
                 [
@@ -241,15 +258,18 @@ Dice que tienes potencial para algo... especial."
                     InlineKeyboardButton("🏆 Ranking", callback_data="user_leaderboard")
                 ]
             ])
-            
+
             # Opciones VIP si aplica
             if getattr(user, 'is_vip', False) or level >= 5:
                 keyboard.append([InlineKeyboardButton("🏆 Subastas VIP", callback_data="user_auctions")])
-            
-            # Si es admin, agregar acceso al panel
+
+            # BOTÓN DE ADMIN CON LOG DETALLADO
             if is_admin:
+                logger.info(f"✅ Agregando botón de admin para usuario {user_id}")
                 keyboard.append([InlineKeyboardButton("🏛️ Acceder al Diván", callback_data="divan_access")])
-            
+            else:
+                logger.info(f"❌ NO agregando botón de admin para usuario {user_id}")
+
             # Menú principal
             keyboard.append([InlineKeyboardButton("🎭 Menú Principal", callback_data="user_main_menu")])
 
@@ -257,14 +277,15 @@ Dice que tienes potencial para algo... especial."
 
             logger.info("🔍 Enviando mensaje de regreso...")
             await update.message.reply_text(
-                return_message, 
-                reply_markup=reply_markup, 
+                return_message,
+                reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
             logger.info("✅ Mensaje enviado exitosamente")
 
         except Exception as e:
             logger.error(f"❌ Error en _send_returning_user_experience: {e}", exc_info=True)
+
             await self._send_simple_error(update)
 
     async def _send_simple_error(self, update: Update) -> None:

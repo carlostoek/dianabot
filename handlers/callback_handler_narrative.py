@@ -70,30 +70,40 @@ class CallbackHandlerNarrative:
             ),
         )
 
-    async def _check_admin_permissions(
-        self, user_id: int, required_level: str = "admin"
-    ) -> bool:
-        """Verifica permisos de administrador - CORREGIDO"""
+    async def _check_admin_permissions(self, user_id: int, required_level: str = "admin") -> bool:
+        """Verifica permisos de administrador - CORREGIDO PARA COINCIDIR CON START_HANDLER"""
         try:
+            # USAR EL MISMO MÉTODO QUE EN START_HANDLER
             admin = await self.admin_service.get_admin_by_user_id(user_id)
+
+            print(f"🔍 Admin check for user {user_id}:")
+            print(f"   - Admin object: {admin}")
+
             if not admin:
-                print(f"No admin found for user_id: {user_id}")
+                print(f"   - No admin record found")
                 return False
 
+            print(f"   - Admin name: {admin.name}")
+            print(f"   - Admin role: {admin.role}")
+            print(f"   - Admin is_active: {admin.is_active}")
+
             if not admin.is_active:
-                print(f"Admin not active for user_id: {user_id}")
+                print(f"   - Admin not active")
                 return False
 
             if required_level == "super_admin":
                 result = admin.role == "super_admin"
-                print(f"Super admin check for {user_id}: {result} (role: {admin.role})")
+                print(f"   - Super admin check result: {result}")
                 return result
 
             result = admin.role in ["admin", "super_admin"]
-            print(f"Admin check for {user_id}: {result} (role: {admin.role})")
+            print(f"   - Admin check result: {result}")
             return result
+
         except Exception as e:
-            print(f"Error checking admin permissions for {user_id}: {e}")
+            print(f"❌ Error checking admin permissions for {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     async def _get_detailed_analytics(self) -> dict:
@@ -134,65 +144,90 @@ class CallbackHandlerNarrative:
             print(f"Error getting analytics: {e}")
             return {}
 
+
     async def handle_divan_access(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Maneja el acceso al panel de administración - CORREGIDO"""
+        """Maneja el acceso al panel de administración - CON LOGS DETALLADOS"""
         query = update.callback_query
         user_id = query.from_user.id
 
-        if not await self._check_admin_permissions(user_id):
+        print(f"🔍 DIVAN ACCESS ATTEMPT:")
+        print(f"   - User ID: {user_id}")
+        print(f"   - User: {query.from_user.first_name}")
+
+        # VERIFICAR PERMISOS CON LOGS DETALLADOS
+        has_permission = await self._check_admin_permissions(user_id)
+        print(f"   - Permission result: {has_permission}")
+
+        if not has_permission:
+            print(f"❌ Access denied for user {user_id}")
             await self._send_no_permission_message(update, context)
             return
 
         try:
+            print(f"✅ Access granted for user {user_id}")
             admin = await self.admin_service.get_admin_by_user_id(user_id)
+            print(f"   - Admin object: {admin}")
 
             keyboard = [
                 [
-                    InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="admin_users"),
-                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels"),
+                    InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users"),
+                    InlineKeyboardButton("📺 Canales", callback_data="admin_channels")
                 ],
                 [
                     InlineKeyboardButton("🎯 Misiones", callback_data="admin_missions"),
-                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions"),
+                    InlineKeyboardButton("🏆 Subastas", callback_data="admin_auctions")
                 ],
                 [
                     InlineKeyboardButton("🎮 Juegos", callback_data="admin_games"),
-                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore"),
+                    InlineKeyboardButton("📚 Historia", callback_data="admin_lore")
                 ],
                 [
-                    InlineKeyboardButton("📊 Estadísticas", callback_data="admin_stats"),
-                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config"),
+                    InlineKeyboardButton("📊 Estadísticas", callback_data="admin_detailed_analytics"),
+                    InlineKeyboardButton("⚙️ Configuración", callback_data="admin_config")
                 ],
                 [
                     InlineKeyboardButton("🔔 Notificaciones", callback_data="admin_notifications"),
-                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast"),
-                ],
+                    InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")
+                ]
             ]
 
+            # Solo super admins ven estas opciones adicionales
             if admin.role == "super_admin":
-                keyboard.extend(
-                    [
-                        [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_pending_requests")],
-                        [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
-                        [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")],
-                    ]
-                )
+                print(f"   - Adding super admin options")
+                keyboard.extend([
+                    [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_pending_requests")],
+                    [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
+                    [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")]
+                ])
 
-            keyboard.append([InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")])
+            keyboard.extend([
+                [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
+                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]
+            ])
 
-            await query.edit_message_text(
+            panel_text = (
                 f"🏛️ *Panel de Administración*\n\n"
                 f"Bienvenido/a al Diván, {admin.name}\n"
                 f"Rol: {admin.role.title()}\n"
                 f"Nivel de acceso: {'Completo' if admin.role == 'super_admin' else 'Estándar'}\n\n"
-                f"Selecciona una opción:",
-                parse_mode='Markdown',
-                reply_markup=InlineKeyboardMarkup(keyboard),
+                f"📊 **Panel de Control:**\n"
+                f"Desde aquí puedes administrar todos los aspectos de DianaBot.\n\n"
+                f"Selecciona la función que deseas gestionar:"
             )
 
-        except Exception as e:
-            await self._send_error_message(update, context, f"Error al acceder al panel: {str(e)}")
+            await query.edit_message_text(
+                panel_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
 
+            print(f"✅ Divan panel sent successfully to user {user_id}")
+
+        except Exception as e:
+            print(f"❌ Error in handle_divan_access: {e}")
+            import traceback
+            traceback.print_exc()
+            await self._send_error_message(update, context, f"Error al acceder al panel: {str(e)}")
     async def handle_manage_users(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Gestión de usuarios - CORREGIDO"""
         query = update.callback_query

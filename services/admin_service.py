@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 from models.admin import Admin, AdminLevel, AdminPermission, AdminAction
 from models.user import User
-from config.database import get_db
+from config.database import get_db, SessionLocal
+from contextlib import asynccontextmanager
 from utils.lucien_voice import LucienVoice
 from typing import Optional, List, Dict, Any
 from services.channel_service import ChannelService
@@ -19,6 +20,15 @@ class AdminService:
         self.db = next(get_db())
         self.lucien = LucienVoice()
         self.channel_service = ChannelService()
+
+    @asynccontextmanager
+    async def get_db_session(self):
+        """Provide an async DB session."""
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
 
         # Permisos por nivel de admin
         self.LEVEL_PERMISSIONS = {
@@ -63,16 +73,33 @@ class AdminService:
             )
         ).first()
 
-    async def get_admin_by_user_id(self, user_id: int) -> Optional[Admin]:
-        """Obtiene administrador por ID de Telegram"""
+    async def get_admin_by_user_id(self, user_id: int):
+        """Obtiene admin por user_id - CON LOGS DETALLADOS"""
         try:
-            return (
-                self.db.query(Admin)
-                .filter(Admin.telegram_id == user_id)
-                .first()
-            )
+            print(f"🔍 AdminService.get_admin_by_user_id called with user_id: {user_id}")
+
+            async with self.get_db_session() as session:
+                from sqlalchemy import select
+                from models.admin import Admin
+
+                result = await session.execute(
+                    select(Admin).where(Admin.telegram_id == user_id)
+                )
+                admin = result.scalar_one_or_none()
+
+                print(f"🔍 Database query result: {admin}")
+                if admin:
+                    print(f"   - Admin ID: {admin.id}")
+                    print(f"   - Admin name: {admin.name}")
+                    print(f"   - Admin role: {admin.role}")
+                    print(f"   - Admin is_active: {admin.is_active}")
+
+                return admin
+
         except Exception as e:
-            logger.error(f"Error getting admin by user id: {e}")
+            print(f"❌ Error in get_admin_by_user_id: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def get_admin_level(self, telegram_id: int) -> str:

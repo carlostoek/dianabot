@@ -2,7 +2,14 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.user_service import UserService
 from services.mission_service import MissionService
-from utils.lucien_voice_enhanced import LucienVoiceEnhanced, InteractionPattern, UserArchetype
+from utils.lucien_voice_enhanced import (
+    LucienVoiceEnhanced,
+    InteractionPattern,
+    UserArchetype,
+)
+from services.admin_service import AdminService
+from models.admin import AdminPermission, AdminLevel
+from utils.decorators import admin_required, super_admin_only, admin_only
 import logging
 from typing import Dict, Any
 from datetime import datetime, timedelta
@@ -17,6 +24,7 @@ class CallbackHandlerNarrative:
             self.user_service = UserService()
             self.mission_service = MissionService()
             self.lucien = LucienVoiceEnhanced()
+            self.admin_service = AdminService()  # ✅ NUEVO
             logger.info("✅ CallbackHandlerNarrative inicializado")
         except Exception as e:
             logger.error(f"❌ Error inicializando CallbackHandlerNarrative: {e}")
@@ -92,7 +100,21 @@ class CallbackHandlerNarrative:
                 await self._handle_unknown_callback_narrative(update, context, "talk_to_diana")
             elif callback_data == "settings":
                 await self._handle_unknown_callback_narrative(update, context, "settings")
-            
+
+            # === CALLBACKS DE ADMINISTRACIÓN ===
+            elif callback_data == "admin_panel":
+                await self._show_admin_panel(update, context, user, narrative_state)
+            elif callback_data == "generate_vip_token":
+                await self._handle_generate_vip_token(update, context, user, narrative_state)
+            elif callback_data == "manage_channels":
+                await self._handle_manage_channels(update, context, user, narrative_state)
+            elif callback_data == "admin_analytics":
+                await self._handle_admin_analytics(update, context, user, narrative_state)
+            elif callback_data == "manage_admins":
+                await self._handle_manage_admins(update, context, user, narrative_state)
+            elif callback_data.startswith("admin_"):
+                await self._handle_admin_action(update, context, user, narrative_state, callback_data)
+
             # === CATCH-ALL ===
             else:
                 await self._handle_unknown_callback_narrative(update, context, callback_data)
@@ -866,3 +888,416 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         except Exception as e:
             logger.error(f"❌ Error en _handle_premium_original: {e}", exc_info=True)
             await self._send_error_message_narrative(update)
+
+    # === MÉTODOS DE ADMINISTRACIÓN ===
+
+    async def _show_admin_panel(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user: Any,
+        narrative_state: Any,
+    ) -> None:
+        """Muestra panel de administración"""
+
+        try:
+            user_telegram_id = update.effective_user.id
+            first_name = getattr(user, "first_name", "Usuario")
+
+            if not self.admin_service.is_admin(user_telegram_id):
+                await self._send_no_admin_access_message(update, first_name)
+                return
+
+            admin = self.admin_service.get_admin(user_telegram_id)
+            admin_stats = self.admin_service.get_admin_statistics(user_telegram_id)
+
+            admin_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de autoridad]*
+
+"*Ah, {first_name}... bienvenido al centro de control.*"
+
+👑 **Panel de Administración**
+
+**Tu información:**
+• Nivel: {admin.admin_level.value.title()}
+• Comandos usados: {admin_stats['activity']['total_commands']}
+• Última actividad: {admin.last_activity.strftime('%d/%m/%Y %H:%M') if admin.last_activity else 'N/A'}
+
+**Permisos disponibles:**
+{self._format_admin_permissions(admin)}
+
+*[Con aire profesional]*
+
+"*¿Qué deseas administrar hoy?*"
+            """.strip()
+
+            keyboard = []
+            if admin.can_generate_vip_tokens:
+                keyboard.append([InlineKeyboardButton("🎫 Generar Token VIP", callback_data="generate_vip_token")])
+            if admin.can_manage_channels:
+                keyboard.append([InlineKeyboardButton("📺 Gestionar Canales", callback_data="manage_channels")])
+            if admin.can_access_analytics:
+                keyboard.append([InlineKeyboardButton("📊 Ver Analytics", callback_data="admin_analytics")])
+            if admin.can_manage_users:
+                keyboard.append([InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")])
+            if admin.can_manage_admins:
+                keyboard.append([InlineKeyboardButton("👑 Gestionar Admins", callback_data="manage_admins")])
+
+            keyboard.append([InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")])
+            keyboard.append([InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")])
+
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                admin_message,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _show_admin_panel: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _handle_generate_vip_token(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user: Any,
+        narrative_state: Any,
+    ) -> None:
+        """Maneja la generación de tokens VIP"""
+
+        try:
+            user_telegram_id = update.effective_user.id
+            first_name = getattr(user, "first_name", "Usuario")
+
+            if not self.admin_service.has_permission(
+                user_telegram_id, AdminPermission.GENERATE_VIP_TOKENS
+            ):
+                await self._send_no_permission_message(update, first_name, "generar tokens VIP")
+                return
+
+            can_generate = self.admin_service.can_perform_action(
+                user_telegram_id, "generate_vip_token"
+            )
+            if not can_generate["allowed"]:
+                await self._send_limit_reached_message(update, first_name, can_generate["reason"])
+                return
+
+            token_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de autoridad]*
+
+"*{first_name}, vas a generar un token VIP.*"
+
+🎫 **Generador de Tokens VIP**
+
+*[Con aire profesional]*
+
+"*Selecciona el tipo de token que deseas crear:*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("⚡ Token Rápido (24h)", callback_data="admin_token_quick")],
+                [InlineKeyboardButton("📅 Token Semanal (7 días)", callback_data="admin_token_weekly")],
+                [InlineKeyboardButton("🎯 Token Personalizado", callback_data="admin_token_custom")],
+                [InlineKeyboardButton("👤 Token para Usuario Específico", callback_data="admin_token_user")],
+                [InlineKeyboardButton("⬅️ Volver al Panel", callback_data="admin_panel")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                token_message,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_generate_vip_token: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _handle_manage_channels(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user: Any,
+        narrative_state: Any,
+    ) -> None:
+        """Maneja la gestión de canales"""
+
+        try:
+            user_telegram_id = update.effective_user.id
+            first_name = getattr(user, "first_name", "Usuario")
+
+            if not self.admin_service.has_permission(
+                user_telegram_id, AdminPermission.MANAGE_CHANNELS
+            ):
+                await self._send_no_permission_message(update, first_name, "gestionar canales")
+                return
+
+            channels_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de supervisor]*
+
+"*{first_name}, aquí tienes el control de los canales.*"
+
+📺 **Gestión de Canales**
+
+**Canales activos:**
+• Canal Gratuito: Los Kinkys
+• Canal VIP: El Diván
+• Solicitudes pendientes: [Número]
+
+*[Con aire eficiente]*
+
+"*¿Qué deseas hacer?*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("📋 Ver Solicitudes Pendientes", callback_data="admin_pending_requests")],
+                [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
+                [InlineKeyboardButton("❌ Rechazar Solicitudes", callback_data="admin_reject_requests")],
+                [InlineKeyboardButton("📊 Estadísticas de Canales", callback_data="admin_channel_stats")],
+                [InlineKeyboardButton("⚙️ Configurar Auto-aprobación", callback_data="admin_auto_approval")],
+                [InlineKeyboardButton("⬅️ Volver al Panel", callback_data="admin_panel")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                channels_message,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_manage_channels: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _handle_admin_analytics(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user: Any,
+        narrative_state: Any,
+    ) -> None:
+        """Muestra analytics para administradores"""
+
+        try:
+            user_telegram_id = update.effective_user.id
+            first_name = getattr(user, "first_name", "Usuario")
+
+            if not self.admin_service.has_permission(
+                user_telegram_id, AdminPermission.ACCESS_ANALYTICS
+            ):
+                await self._send_no_permission_message(update, first_name, "acceder a analytics")
+                return
+
+            analytics_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire analítico]*
+
+"*{first_name}, aquí tienes los números que importan.*"
+
+📊 **Analytics del Sistema**
+
+**Usuarios:**
+• Total de usuarios: [Número]
+• Usuarios activos (7 días): [Número]
+• Usuarios VIP: [Número]
+
+**Actividad:**
+• Misiones completadas hoy: [Número]
+• Tokens VIP generados: [Número]
+• Mensajes en canales: [Número]
+
+**Narrativa:**
+• Usuarios en Nivel 1: [Número]
+• Usuarios en El Diván: [Número]
+• Progreso promedio: [Porcentaje]%
+
+*[Con aire profesional]*
+
+"*Los datos nunca mienten.*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("📈 Analytics Detallados", callback_data="admin_detailed_analytics")],
+                [InlineKeyboardButton("👥 Estadísticas de Usuarios", callback_data="admin_user_stats")],
+                [InlineKeyboardButton("📺 Estadísticas de Canales", callback_data="admin_channel_analytics")],
+                [InlineKeyboardButton("🎯 Estadísticas de Misiones", callback_data="admin_mission_stats")],
+                [InlineKeyboardButton("⬅️ Volver al Panel", callback_data="admin_panel")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                analytics_message,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_admin_analytics: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _handle_manage_admins(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user: Any,
+        narrative_state: Any,
+    ) -> None:
+        """Placeholder para gestionar administradores"""
+
+        await self._handle_unknown_callback_narrative(update, context, "manage_admins")
+
+    async def _handle_admin_action(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        user: Any,
+        narrative_state: Any,
+        callback_data: str,
+    ) -> None:
+        """Maneja acciones específicas de administración"""
+
+        try:
+            user_telegram_id = update.effective_user.id
+            first_name = getattr(user, "first_name", "Usuario")
+
+            if callback_data == "admin_token_quick":
+                await self._generate_quick_vip_token(update, context, user_telegram_id)
+            elif callback_data == "admin_token_weekly":
+                await self._generate_weekly_vip_token(update, context, user_telegram_id)
+            elif callback_data == "admin_my_activity":
+                await self._show_admin_activity(update, context, user_telegram_id)
+            else:
+                await self._handle_unknown_callback_narrative(update, context, callback_data)
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_admin_action: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    # === MÉTODOS AUXILIARES DE ADMINISTRACIÓN ===
+
+    def _format_admin_permissions(self, admin) -> str:
+        """Formatea los permisos del admin para mostrar"""
+
+        permissions = []
+        if admin.can_generate_vip_tokens:
+            permissions.append("🎫 Generar tokens VIP")
+        if admin.can_manage_channels:
+            permissions.append("📺 Gestionar canales")
+        if admin.can_manage_users:
+            permissions.append("👥 Gestionar usuarios")
+        if admin.can_access_analytics:
+            permissions.append("📊 Ver analytics")
+        if admin.can_manage_admins:
+            permissions.append("👑 Gestionar admins")
+        if admin.can_modify_system:
+            permissions.append("⚙️ Configurar sistema")
+
+        return "\n".join(f"• {perm}" for perm in permissions) if permissions else "• Sin permisos especiales"
+
+    async def _send_no_admin_access_message(self, update, first_name: str):
+        """Envía mensaje cuando el usuario no es admin"""
+
+        message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de superioridad]*
+
+"*Oh, {first_name}... qué adorable.*"
+
+*[Con desdén elegante]*
+
+"*¿Realmente creías que podrías acceder al panel de administración?*"
+
+*[Con sarcasmo refinado]*
+
+"*Esto es solo para personas... importantes. Y claramente, tú no lo eres.*"
+        """.strip()
+
+        keyboard = [[InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+
+    async def _send_no_permission_message(self, update, first_name: str, action: str):
+        """Mensaje cuando falta permiso"""
+
+        message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de reproche]*
+
+"*{first_name}, no tienes permiso para {action}.*"
+        """.strip()
+
+        keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="admin_panel")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+
+    async def _send_limit_reached_message(self, update, first_name: str, reason: str):
+        """Indica que se alcanzó un límite"""
+
+        message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de advertencia]*
+
+"*{first_name}, {reason}.*"
+        """.strip()
+
+        keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="admin_panel")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+
+    async def _generate_quick_vip_token(self, update, context, telegram_id: int):
+        """Genera un token VIP de 24h (simulado)"""
+        self.admin_service.log_admin_action(
+            admin_telegram_id=telegram_id,
+            action_type="generate_quick_vip_token",
+            action_description="Token VIP rápido",
+        )
+
+        await update.callback_query.edit_message_text(
+            "✅ Token VIP rápido generado (24h)", parse_mode="Markdown"
+        )
+
+    async def _generate_weekly_vip_token(self, update, context, telegram_id: int):
+        """Genera un token VIP semanal (simulado)"""
+        self.admin_service.log_admin_action(
+            admin_telegram_id=telegram_id,
+            action_type="generate_weekly_vip_token",
+            action_description="Token VIP semanal",
+        )
+
+        await update.callback_query.edit_message_text(
+            "✅ Token VIP semanal generado (7 días)", parse_mode="Markdown"
+        )
+
+    async def _show_admin_activity(self, update, context, telegram_id: int):
+        """Muestra actividad del administrador"""
+
+        stats = self.admin_service.get_admin_statistics(telegram_id)
+        message = f"""
+**Tu actividad**
+
+• Comandos usados: {stats['activity']['total_commands']}
+• Último comando: {stats['activity']['last_command'] or 'N/A'}
+        """.strip()
+
+        keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="admin_panel")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+

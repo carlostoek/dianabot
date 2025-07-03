@@ -46,6 +46,20 @@ class User(Base):
     auction_bids = relationship("AuctionBid", back_populates="user")
     narrative_state = relationship("UserNarrativeState", uselist=False, back_populates="user")
 
+    def days_left_vip(self) -> int:
+        """Return remaining VIP days."""
+        if self.vip_expires:
+            remaining = self.vip_expires - datetime.utcnow()
+            return max(remaining.days, 0)
+        return 0
+
+    def vip_expires_soon(self, threshold_days: int = 3) -> bool:
+        """Check if VIP status expires within given threshold."""
+        if not self.is_vip or not self.vip_expires:
+            return False
+        days_left = (self.vip_expires - datetime.utcnow()).days
+        return 0 <= days_left <= threshold_days
+
 
 class UserStats(Base):
     __tablename__ = "user_stats"

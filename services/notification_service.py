@@ -35,6 +35,14 @@ class NotificationService:
         """Establece la instancia del bot de Telegram"""
         self.bot = bot
 
+    def get_all_vip_users(self) -> List[User]:
+        """Return all users with active VIP status."""
+        return (
+            self.db.query(User)
+            .filter(User.is_vip == True)
+            .all()
+        )
+
     # ===== NOTIFICATION CREATION =====
 
     def create_notification(

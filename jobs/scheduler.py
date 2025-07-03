@@ -72,3 +72,4 @@ def check_vip_expiring() -> None:
             notification_service.notify_vip_status(
                 user.id, "expiring", {"days_left": user.days_left_vip()}
             )
+

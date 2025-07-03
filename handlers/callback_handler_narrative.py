@@ -686,124 +686,13 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             reply_markup=reply_markup, 
             parse_mode="Markdown"
         )
-        
-# === CALLBACKS FALTANTES DEL SISTEMA ORIGINAL ===
 
-async def _handle_missions_original(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
-    """Maneja el callback 'missions' del sistema original"""
-    
-    try:
-        first_name = getattr(user, 'first_name', 'Usuario')
+    # === CALLBACKS NARRATIVOS FALTANTES ===
 
-        missions_message = f"""
-{self.lucien.EMOJIS['lucien']} *[Con aire de supervisor reluctante]*
+    async def _handle_narrative_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
+        """Maneja 'narrative_progress'"""
 
-"*Oh, {first_name}... quieres ver tus 'misiones'. Qué... ambicioso.*"
-
-*[Consultando una lista elegante]*
-
-🎯 **Misiones Disponibles:**
-
-🌅 **Misión Diaria**
-• Interactuar con Diana hoy
-• Recompensa: 10 Besitos 💋
-• Estado: Disponible
-
-🎭 **Conocer a Diana**
-• Explorar todas las introducciones
-• Recompensa: 25 Besitos + Acceso especial
-• Estado: En progreso
-
-💎 **Camino al VIP**
-• Completar 5 misiones principales
-• Recompensa: Token VIP gratuito
-• Estado: 0/5
-
-{self.lucien.EMOJIS['diana']} *[Diana susurra desde las sombras]*
-
-"*Cada misión completada me acerca más a ti, {first_name}...*"
-        """.strip()
-
-        keyboard = [
-            [InlineKeyboardButton("✅ Completar Diaria", callback_data="complete_daily")],
-            [InlineKeyboardButton("🎭 Explorar Introducciones", callback_data="intro_diana")],
-            [InlineKeyboardButton("🔄 Actualizar Progreso", callback_data="refresh_missions")],
-            [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            missions_message, 
-            reply_markup=reply_markup, 
-            parse_mode="Markdown"
-        )
-
-    except Exception as e:
-        logger.error(f"❌ Error en _handle_missions_original: {e}", exc_info=True)
-        await self._send_error_message_narrative(update)
-
-async def _handle_premium_original(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
-    """Maneja el callback 'premium' del sistema original"""
-    
-    try:
-        first_name = getattr(user, 'first_name', 'Usuario')
-
-        premium_message = f"""
-{self.lucien.EMOJIS['diana']} *[Diana aparece con aire exclusivo]*
-
-"*{first_name}... quieres ver mi contenido más... íntimo.*"
-
-*[Con sonrisa seductora]*
-
-"*No todo lo que creo está disponible para todos. Las mejores piezas, las más personales... requieren verdadera dedicación.*"
-
-💎 **Contenido Premium Disponible:**
-
-📸 **Fotos Exclusivas**
-• Sesión "Elegancia Nocturna"
-• Precio: 50 Besitos 💋
-• Estado: Disponible
-
-🎥 **Videos Personalizados**
-• Saludo con tu nombre
-• Precio: 100 Besitos 💋
-• Estado: Disponible
-
-✨ **Experiencias VIP**
-• Chat privado 30 min
-• Precio: 200 Besitos 💋
-• Estado: Solo VIP
-
-{self.lucien.EMOJIS['lucien']} *[Con aire profesional]*
-
-"*Los precios reflejan la exclusividad, {first_name}.*"
-        """.strip()
-
-        keyboard = [
-            [InlineKeyboardButton("👑 Obtener Acceso VIP", callback_data="get_vip")],
-            [InlineKeyboardButton("📸 Vista Previa", callback_data="vip_preview")],
-            [InlineKeyboardButton("💬 Testimonios", callback_data="testimonials")],
-            [InlineKeyboardButton("💰 ¿Cómo ganar besitos?", callback_data="earn_besitos")],
-            [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        await update.callback_query.edit_message_text(
-            premium_message, 
-            reply_markup=reply_markup, 
-            parse_mode="Markdown"
-        )
-
-    except Exception as e:
-        logger.error(f"❌ Error en _handle_premium_original: {e}", exc_info=True)
-        await self._send_error_message_narrative(update)
-
-# === CALLBACKS NARRATIVOS FALTANTES ===
-
-async def _handle_narrative_progress(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
-    """Maneja 'narrative_progress'"""
-    
-    progress_message = f"""
+        progress_message = f"""
 {self.lucien.EMOJIS['lucien']} *[Con aire de evaluador]*
 
 "*Tu progreso narrativo... veamos...*"
@@ -816,23 +705,23 @@ async def _handle_narrative_progress(self, update: Update, context: ContextTypes
 *[Con sarcasmo]*
 
 "*Básicamente... acabas de empezar.*"
-    """.strip()
+        """.strip()
 
-    keyboard = [
-        [InlineKeyboardButton("⬅️ Volver", callback_data="back_to_menu")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [
+            [InlineKeyboardButton("⬅️ Volver", callback_data="back_to_menu")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.callback_query.edit_message_text(
-        progress_message, 
-        reply_markup=reply_markup, 
-        parse_mode="Markdown"
-    )
+        await update.callback_query.edit_message_text(
+            progress_message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
 
-async def _handle_continue_story(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
-    """Maneja 'continue_story'"""
-    
-    story_message = f"""
+    async def _handle_continue_story(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
+        """Maneja 'continue_story'"""
+
+        story_message = f"""
 {self.lucien.EMOJIS['diana']} *[Diana aparece con misterio]*
 
 "*¿Listo para continuar nuestra historia?*"
@@ -840,23 +729,25 @@ async def _handle_continue_story(self, update: Update, context: ContextTypes.DEF
 *[Con aire seductor]*
 
 "*Cada paso que das me revela más sobre ti...*"
-    """.strip()
+        """.strip()
 
-    keyboard = [
-        [InlineKeyboardButton("🚪 Descubrir más", callback_data="level1_scene2")],
-        [InlineKeyboardButton("⬅️ Volver", callback_data="back_to_menu")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard = [
+            [InlineKeyboardButton("🚪 Descubrir más", callback_data="level1_scene2")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="back_to_menu")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.callback_query.edit_message_text(
-        story_message, 
-        reply_markup=reply_markup, 
-        parse_mode="Markdown"
-    )    # === MÉTODOS FALTANTES - AGREGAR AL FINAL DE LA CLASE ===
+        await update.callback_query.edit_message_text(
+            story_message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+
+    # === MÉTODOS FALTANTES - AGREGAR AL FINAL DE LA CLASE ===
 
     async def _handle_missions_original(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
         """Maneja el callback 'missions' del sistema original"""
-        
+
         try:
             first_name = getattr(user, 'first_name', 'Usuario')
 
@@ -898,8 +789,8 @@ async def _handle_continue_story(self, update: Update, context: ContextTypes.DEF
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await update.callback_query.edit_message_text(
-                missions_message, 
-                reply_markup=reply_markup, 
+                missions_message,
+                reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
 
@@ -909,7 +800,7 @@ async def _handle_continue_story(self, update: Update, context: ContextTypes.DEF
 
     async def _handle_premium_original(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
         """Maneja el callback 'premium' del sistema original"""
-        
+
         try:
             first_name = getattr(user, 'first_name', 'Usuario')
 
@@ -954,13 +845,11 @@ async def _handle_continue_story(self, update: Update, context: ContextTypes.DEF
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             await update.callback_query.edit_message_text(
-                premium_message, 
-                reply_markup=reply_markup, 
+                premium_message,
+                reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
 
         except Exception as e:
             logger.error(f"❌ Error en _handle_premium_original: {e}", exc_info=True)
             await self._send_error_message_narrative(update)
-            
-    

@@ -1136,4 +1136,73 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
         except Exception as e:
             print(f"Error getting paginated users: {e}")
             return []
+
+    async def calculate_xp_for_level(self, target_level: int) -> int:
+        """Calcula XP necesaria para un nivel específico"""
+        return (target_level ** 2) * 100 + target_level * 50
+
+    async def calculate_daily_gift(self, user_id: int) -> dict:
+        """Calcula el regalo diario para un usuario"""
+        try:
+            user = self.get_user_by_telegram_id(user_id)
+            if not user:
+                return {"besitos": 0, "can_claim": False}
+
+            from datetime import date
+            today = date.today()
+            can_claim = not user.last_daily_claim or user.last_daily_claim.date() < today
+
+            if not can_claim:
+                return {"besitos": 0, "can_claim": False}
+
+            base_reward = 50
+            level_bonus = user.level * 10
+            vip_multiplier = 2 if user.is_vip else 1
+            total_besitos = (base_reward + level_bonus) * vip_multiplier
+
+            return {
+                "besitos": total_besitos,
+                "can_claim": True,
+                "base": base_reward,
+                "bonus": level_bonus,
+                "multiplier": vip_multiplier,
+            }
+        except Exception as e:
+            print(f"Error calculating daily gift: {e}")
+            return {"besitos": 0, "can_claim": False}
+
+    async def give_daily_gift(self, user_id: int) -> bool:
+        """Otorga el regalo diario al usuario"""
+        try:
+            gift_info = await self.calculate_daily_gift(user_id)
+            if not gift_info["can_claim"]:
+                return False
+
+            user = self.get_user_by_telegram_id(user_id)
+            user.besitos += gift_info["besitos"]
+            user.last_daily_claim = datetime.utcnow()
+
+            self.db.add(user)
+            self.db.commit()
+
+            return True
+        except Exception as e:
+            print(f"Error giving daily gift: {e}")
+            return False
+
+    async def get_user_lore_pieces(self, user_id: int):
+        """Obtiene piezas de historia del usuario"""
+        try:
+            return []
+        except Exception as e:
+            print(f"Error getting user lore pieces: {e}")
+            return []
+
+    async def check_lore_combinations(self, user_id: int, pieces: list = None):
+        """Verifica combinaciones de piezas de historia"""
+        try:
+            return None
+        except Exception as e:
+            print(f"Error checking lore combinations: {e}")
+            return None
    

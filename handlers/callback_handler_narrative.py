@@ -60,13 +60,11 @@ class CallbackHandlerNarrative:
             elif callback_data == "profile":
                 await self._show_profile_narrative(update, context, user, narrative_state)
             elif callback_data == "missions":
-                await self._show_missions_narrative(update, context, user, narrative_state)
+                await self._handle_missions_original(update, context, user, narrative_state)
             elif callback_data == "back_to_menu":
                 await self._show_main_menu_narrative(update, context, user, narrative_state)
 
             # === CALLBACKS DEL SISTEMA ORIGINAL ===
-            elif callback_data == "missions":
-                await self._handle_missions_original(update, context, user, narrative_state)
             elif callback_data == "premium":
                 await self._handle_premium_original(update, context, user, narrative_state)
 

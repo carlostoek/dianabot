@@ -329,7 +329,7 @@ Estaré aquí cuando estés listo para dar ese paso.""",
             "reward_type": "patience_acknowledged"
         }
 
-    def _get_refusal_response(self, first_name: str) -> Dict[str, str]:
+        def _get_refusal_response(self, first_name: str) -> Dict[str, str]:
         """Respuesta cuando el usuario se niega a reaccionar"""
         
         return {
@@ -342,4 +342,332 @@ Estaré aquí cuando estés listo para dar ese paso.""",
 
 Interesante. A veces la resistencia dice más que la obediencia.
 
-*[Con
+*[Con paciencia enigmática]*
+
+Pero recuerda... algunas puertas solo se abren una vez.""",
+            
+            "lucien_comment": f"""
+{self.lucien.EMOJIS['lucien']} *[Con sarcasmo palpable]*
+
+"*Ah, qué sorpresa... otro que se paraliza ante el primer desafío real.*"
+
+*[Con desdén elegante]*
+
+"*Diana es paciente, yo... considerably less so.*"
+""",
+            "reward_type": "refusal_consequence"
+        }
+
+    def _get_reward_message(self, reward_type: str) -> str:
+        """Genera mensaje de recompensa según el tipo"""
+        
+        reward_content = self.lucien.get_reward_content(reward_type, UserArchetype.UNDEFINED)
+        
+        return f"""
+🎁 **{reward_content['title']}**
+
+*{reward_content['description']}*
+
+**Contenido:** {reward_content['content']}
+**Rareza:** {reward_content['rarity']}
+        """.strip()
+
+    # === CALLBACKS NARRATIVOS ADICIONALES ===
+
+    async def _handle_open_traveler_bag(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
+        """Maneja la apertura de la Mochila del Viajero"""
+        
+        try:
+            first_name = getattr(user, 'first_name', 'Usuario')
+
+            bag_message = f"""
+{self.lucien.EMOJIS['elegant']} **Mochila del Viajero Abierta**
+
+{self.lucien.EMOJIS['lucien']} *[Con ceremonia]*
+
+"*Veamos qué ha preparado Diana para ti, {first_name}...*"
+
+*[Abriendo la mochila con dramatismo]*
+
+🗺️ **Fragmento de Mapa Misterioso**
+*Una pieza de pergamino antiguo con símbolos extraños*
+
+📜 **Nota Personal de Diana:**
+*"Para {first_name}: Este mapa está incompleto... intencionalmente. La otra mitad existe donde las reglas cambian. - D"*
+
+🔑 **Llave Simbólica**
+*Una pequeña llave dorada con la inscripción: "Para puertas que no todos pueden ver"*
+
+{self.lucien.EMOJIS['diana']} *[Diana aparece brevemente]*
+
+"*La verdadera pregunta no es qué contiene la mochila... sino si estás preparado para usar lo que hay dentro.*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("🗺️ Examinar el mapa", callback_data="examine_map")],
+                [InlineKeyboardButton("📜 Leer nota completa", callback_data="read_diana_note")],
+                [InlineKeyboardButton("🔑 Inspeccionar la llave", callback_data="inspect_key")],
+                [InlineKeyboardButton("💭 ¿Qué significa todo esto?", callback_data="ask_meaning")],
+                [InlineKeyboardButton("➡️ Continuar el viaje", callback_data="continue_journey")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                bag_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_open_traveler_bag: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _handle_examine_map(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
+        """Examina el fragmento de mapa"""
+        
+        try:
+            first_name = getattr(user, 'first_name', 'Usuario')
+
+            map_message = f"""
+🗺️ **Fragmento de Mapa Analizado**
+
+{self.lucien.EMOJIS['lucien']} *[Con aire de detective]*
+
+"*Interesante, {first_name}... este mapa no señala un lugar físico.*"
+
+*[Examinando con lupa imaginaria]*
+
+**Lo que puedes ver:**
+• Símbolos que parecen... emociones
+• Caminos que se bifurcan según decisiones
+• Una X marcada en un lugar llamado "Comprensión Mutua"
+• Coordenadas que no son geográficas: "Vulnerabilidad 40°, Confianza 60°"
+
+{self.lucien.EMOJIS['diana']} *[Susurrando desde las sombras]*
+
+"*Este mapa no te lleva a un lugar, {first_name}... te lleva a un estado de ser.*"
+
+*[Con misterio profundo]*
+
+"*Y la otra mitad... solo aparece cuando demuestras que puedes manejar esta.*"
+
+{self.lucien.EMOJIS['lucien']} *[Con sarcasmo]*
+
+"*Típico de Diana... hasta sus mapas son... filosóficos.*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("🧭 ¿Cómo uso este mapa?", callback_data="how_to_use_map")],
+                [InlineKeyboardButton("❓ ¿Dónde está la otra mitad?", callback_data="where_other_half")],
+                [InlineKeyboardButton("💡 Creo que entiendo", callback_data="understand_map")],
+                [InlineKeyboardButton("🔙 Volver a la mochila", callback_data="open_traveler_bag")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                map_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_examine_map: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    # === MENÚS PRINCIPALES CON NARRATIVA ===
+
+    async def _show_main_menu_narrative(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
+        """Menú principal con contexto narrativo"""
+        
+        try:
+            first_name = getattr(user, 'first_name', 'Usuario')
+            
+            # Detectar progreso narrativo actual
+            current_level = getattr(narrative_state, 'current_level', 'newcomer')
+            
+            # Mensaje adaptativo según progreso
+            if current_level == 'newcomer':
+                menu_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de recepcionista sarcástico]*
+
+"*Oh, {first_name}... de vuelta al lobby. Qué... predecible.*"
+
+*[Con eficiencia profesional]*
+
+Diana está observando tu... progreso. O la falta de él.
+
+¿Qué intentarás ahora?
+                """.strip()
+            else:
+                menu_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con reconocimiento reluctante]*
+
+"*{first_name}... has progresado más de lo que esperaba.*"
+
+*[Con aire conspirativo]*
+
+Diana ha estado... comentando sobre ti. Eso es... unusual.
+
+¿Continuamos con tu desarrollo personal?
+                """.strip()
+
+            # Botones adaptativos según progreso
+            keyboard = [
+                [InlineKeyboardButton("👤 Mi Progreso Narrativo", callback_data="narrative_progress")],
+                [InlineKeyboardButton("🎭 Continuar Historia", callback_data="continue_story")],
+                [InlineKeyboardButton("🗺️ Revisar Pistas", callback_data="review_clues")],
+                [InlineKeyboardButton("💬 Hablar con Diana", callback_data="talk_to_diana")],
+                [InlineKeyboardButton("⚙️ Configuración", callback_data="settings")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                menu_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _show_main_menu_narrative: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    async def _show_profile_narrative(self, update: Update, context: ContextTypes.DEFAULT_TYPE, user: Any, narrative_state: Any) -> None:
+        """Perfil con contexto narrativo"""
+        
+        try:
+            first_name = getattr(user, 'first_name', 'Usuario')
+            
+            # Obtener datos del usuario
+            level = getattr(user, 'level', 1)
+            besitos = getattr(user, 'besitos', 0)
+            trust_level = getattr(narrative_state, 'diana_trust_level', 0)
+            
+            profile_message = f"""
+{self.lucien.EMOJIS['lucien']} **Expediente Personal de {first_name}**
+
+*[Consultando un elegante dossier]*
+
+"*Veamos tu... evolución hasta ahora.*"
+
+📊 **Estadísticas de Progreso:**
+• **Nivel Narrativo:** {level}
+• **Besitos de Diana:** {besitos} 💋
+• **Confianza de Diana:** {trust_level}/100
+• **Arquetipo Detectado:** {self._get_user_archetype_display(narrative_state)}
+
+🎭 **Análisis de Personalidad:**
+{self._get_personality_analysis(narrative_state, trust_level)}
+
+{self.lucien.EMOJIS['diana']} *[Diana observa desde las sombras]*
+
+"*{first_name} está... {self._get_diana_opinion_narrative(trust_level)}*"
+
+*[Con aire evaluativo]*
+
+"*Pero aún hay... mucho camino por recorrer.*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("📈 Ver Progreso Detallado", callback_data="detailed_progress")],
+                [InlineKeyboardButton("🎭 Mi Arquetipo", callback_data="my_archetype")],
+                [InlineKeyboardButton("💭 ¿Qué piensa Diana de mí?", callback_data="diana_opinion")],
+                [InlineKeyboardButton("🎯 ¿Cómo mejorar?", callback_data="how_to_improve")],
+                [InlineKeyboardButton("⬅️ Volver al menú", callback_data="back_to_menu")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                profile_message, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _show_profile_narrative: {e}", exc_info=True)
+            await self._send_error_message_narrative(update)
+
+    # === MÉTODOS AUXILIARES PARA NARRATIVA ===
+
+    def _get_user_archetype_display(self, narrative_state: Any) -> str:
+        """Obtiene el arquetipo del usuario para mostrar"""
+        
+        archetype = getattr(narrative_state, 'primary_archetype', 'undefined')
+        
+        archetype_names = {
+            'explorer': 'El Explorador 🔍',
+            'direct': 'El Directo ⚡',
+            'romantic': 'El Romántico 💫',
+            'analytical': 'El Analítico 🧠',
+            'persistent': 'El Persistente 💪',
+            'patient': 'El Paciente 🕰️',
+            'undefined': 'En evaluación... 🤔'
+        }
+        
+        return archetype_names.get(archetype, 'Misterioso 🎭')
+
+    def _get_personality_analysis(self, narrative_state: Any, trust_level: int) -> str:
+        """Genera análisis de personalidad"""
+        
+        if trust_level < 20:
+            return "*Personalidad aún en desarrollo. Diana necesita más datos para un análisis completo.*"
+        elif trust_level < 50:
+            return "*Muestra signos prometedores de comprensión emocional. Diana está... intrigada.*"
+        elif trust_level < 80:
+            return "*Demuestra madurez emocional notable. Diana ha comenzado a... confiar.*"
+        else:
+            return "*Excepcional comprensión de la complejidad humana. Diana está genuinamente impresionada.*"
+
+    def _get_diana_opinion_narrative(self, trust_level: int) -> str:
+        """Opinión narrativa de Diana según nivel de confianza"""
+        
+        if trust_level < 20:
+            return "evaluando su potencial"
+        elif trust_level < 50:
+            return "comenzando a interesarse"
+        elif trust_level < 80:
+            return "genuinamente intrigada"
+        else:
+            return "profundamente fascinada"
+
+    async def _send_error_message_narrative(self, update: Update) -> None:
+        """Mensaje de error con narrativa"""
+        
+        error_message = self.lucien.get_error_message("narrativa")
+        
+        try:
+            await update.callback_query.edit_message_text(
+                error_message, 
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Error enviando mensaje de error narrativo: {e}")
+
+    async def _handle_unknown_callback_narrative(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> None:
+        """Maneja callbacks desconocidos con narrativa"""
+        
+        unknown_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con exasperación elegante]*
+
+"*Oh, qué sorpresa... {callback_data} no está implementado yet.*"
+
+*[Con sarcasmo profesional]*
+
+"*Diana me pide que te informe que esa funcionalidad está... en desarrollo.*"
+
+*[Con aire condescendiente]*
+
+"*Mientras tanto, perhaps try something that actually works?*"
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("🔙 Volver al menú", callback_data="back_to_menu")],
+            [InlineKeyboardButton("🎭 Continuar historia", callback_data="continue_story")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            unknown_message, 
+            reply_markup=reply_markup, 
+            parse_mode="Markdown"
+        )
+        

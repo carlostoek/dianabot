@@ -387,6 +387,97 @@ class CallbackHandlerNarrative:
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar gestión de tokens: {str(e)}")
 
+    async def handle_admin_users(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión completa de usuarios (desde keyboards.py)"""
+        await self.handle_manage_users(update, context)
+
+    async def handle_admin_channels(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de canales"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("📋 Lista de Canales", callback_data="admin_channel_list")],
+                [InlineKeyboardButton("➕ Agregar Canal", callback_data="admin_channel_add")],
+                [InlineKeyboardButton("⚙️ Configurar Canal", callback_data="admin_channel_config")],
+                [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_channel_stats")],
+                [InlineKeyboardButton("🔙 Volver", callback_data="admin_main_menu")],
+            ]
+
+            await query.edit_message_text(
+                "📺 *Gestión de Canales*\n\n"
+                "Administra los canales conectados al bot.\n\n"
+                "Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de canales: {str(e)}")
+
+    async def handle_admin_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de misiones"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("📋 Misiones Activas", callback_data="admin_missions_active")],
+                [InlineKeyboardButton("➕ Crear Misión", callback_data="admin_mission_create")],
+                [InlineKeyboardButton("⚙️ Configurar Misiones", callback_data="admin_missions_config")],
+                [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_missions_stats")],
+                [InlineKeyboardButton("🔙 Volver", callback_data="admin_main_menu")],
+            ]
+
+            await query.edit_message_text(
+                "🎯 *Gestión de Misiones*\n\n"
+                "Administra las misiones del sistema.\n\n"
+                "Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de misiones: {str(e)}")
+
+    async def handle_admin_auctions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de subastas"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("📋 Subastas Activas", callback_data="admin_auctions_active")],
+                [InlineKeyboardButton("➕ Crear Subasta", callback_data="admin_auction_create")],
+                [InlineKeyboardButton("⚙️ Configurar Subastas", callback_data="admin_auctions_config")],
+                [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_auctions_stats")],
+                [InlineKeyboardButton("🔙 Volver", callback_data="admin_main_menu")],
+            ]
+
+            await query.edit_message_text(
+                "🏆 *Gestión de Subastas VIP*\n\n"
+                "Administra las subastas del sistema.\n\n"
+                "Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de subastas: {str(e)}")
+
     async def handle_admin_user_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Muestra lista paginada de usuarios"""
         query = update.callback_query
@@ -608,6 +699,14 @@ class CallbackHandlerNarrative:
                 await self._handle_manage_admins(update, context, user, narrative_state)
             elif callback_data == "divan_access":
                 await self.handle_divan_access(update, context)
+            elif callback_data == "admin_users":
+                await self.handle_admin_users(update, context)
+            elif callback_data == "admin_channels":
+                await self.handle_admin_channels(update, context)
+            elif callback_data == "admin_missions":
+                await self.handle_admin_missions(update, context)
+            elif callback_data == "admin_auctions":
+                await self.handle_admin_auctions(update, context)
             elif callback_data == "manage_users":
                 await self.handle_manage_users(update, context)
             elif callback_data == "admin_my_activity":

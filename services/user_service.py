@@ -125,9 +125,13 @@ class UserService:
 
             self.db.commit()
 
-    def get_user_by_telegram_id(self, telegram_id: int) -> Optional[User]:
+    async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[User]:
         """Obtiene usuario por ID de Telegram"""
-        return self.db.query(User).filter(User.telegram_id == telegram_id).first()
+        return (
+            self.db.query(User)
+            .filter(User.telegram_id == telegram_id)
+            .first()
+        )
 
     def get_all_users(self) -> List[User]:
         """Return all users registered in the system."""
@@ -1144,7 +1148,7 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
     async def calculate_daily_gift(self, user_id: int) -> dict:
         """Calcula el regalo diario para un usuario"""
         try:
-            user = self.get_user_by_telegram_id(user_id)
+            user = await self.get_user_by_telegram_id(user_id)
             if not user:
                 return {"besitos": 0, "can_claim": False}
 
@@ -1178,7 +1182,7 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
             if not gift_info["can_claim"]:
                 return False
 
-            user = self.get_user_by_telegram_id(user_id)
+            user = await self.get_user_by_telegram_id(user_id)
             user.besitos += gift_info["besitos"]
             user.last_daily_claim = datetime.utcnow()
 
@@ -1205,4 +1209,43 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
         except Exception as e:
             print(f"Error checking lore combinations: {e}")
             return None
+
+    async def get_top_users_by_level(self, limit: int = 10):
+        """Obtiene usuarios con mayor nivel"""
+        try:
+            return (
+                self.db.query(User)
+                .filter(User.is_banned == False)
+                .order_by(desc(User.level), desc(User.experience))
+                .limit(limit)
+                .all()
+            )
+        except Exception as e:
+            print(f"Error getting top users: {e}")
+            return []
+
+    async def get_user_ranking_position(self, telegram_id: int) -> int:
+        """Posición del usuario en el ranking por nivel"""
+        try:
+            user = await self.get_user_by_telegram_id(telegram_id)
+            if not user:
+                return 0
+
+            higher = (
+                self.db.query(func.count(User.id))
+                .filter(
+                    or_(
+                        User.level > user.level,
+                        and_(User.level == user.level, User.experience > user.experience),
+                    ),
+                    User.is_banned == False,
+                )
+                .scalar()
+                or 0
+            )
+
+            return higher + 1
+        except Exception as e:
+            print(f"Error getting user ranking position: {e}")
+            return 0
    

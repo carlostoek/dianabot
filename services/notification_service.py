@@ -796,4 +796,17 @@ Has ganado la subasta:
             .filter(User.is_vip == True, User.vip_expires.is_not(None), User.vip_expires > now)
             .all()
         )
+
+    async def get_sent_notifications_count(self) -> int:
+        """Cuenta notificaciones enviadas"""
+        try:
+            result = (
+                self.db.query(func.count(Notification.id))
+                .filter(Notification.is_sent == True)
+                .scalar()
+            )
+            return result or 0
+        except Exception as e:
+            print(f"Error getting sent notifications count: {e}")
+            return 0
    

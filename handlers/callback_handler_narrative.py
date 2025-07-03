@@ -1,6 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.user_service import UserService
+from services.mission_service import MissionService
 from utils.lucien_voice_enhanced import LucienVoiceEnhanced, InteractionPattern, UserArchetype
 import logging
 from typing import Dict, Any
@@ -14,11 +15,23 @@ class CallbackHandlerNarrative:
     def __init__(self):
         try:
             self.user_service = UserService()
+            self.mission_service = MissionService()
             self.lucien = LucienVoiceEnhanced()
             logger.info("✅ CallbackHandlerNarrative inicializado")
         except Exception as e:
             logger.error(f"❌ Error inicializando CallbackHandlerNarrative: {e}")
             raise
+
+    async def start_narrative(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Inicia la narrativa y asigna misiones diarias"""
+
+        user_id = update.effective_user.id
+
+        # Lógica inicial de narrativa (placeholder)
+
+        self.mission_service.create_daily_missions_for_user(user_id)
 
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Router principal con narrativa inmersiva"""

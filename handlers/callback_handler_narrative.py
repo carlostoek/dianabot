@@ -1927,6 +1927,288 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             parse_mode="Markdown",
         )
 
+    # =========================================================================
+    # Callbacks de acciones específicas (Fase 4)
+    # =========================================================================
+
+    async def handle_missions_completed(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra misiones completadas del usuario"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            user = await self.user_service.get_user_by_telegram_id(user_id)
+            if not user:
+                await self._send_error_message(update, context, "Usuario no encontrado")
+                return
+
+            completed_missions = await self.mission_service.get_user_completed_missions(user_id)
+
+            if not completed_missions:
+                missions_text = (
+                    f"✅ *Misiones Completadas*\n\n"
+                    f"Aún no has completado ninguna misión.\n\n"
+                    f"¡Ve al menú de misiones activas para comenzar tu aventura!"
+                )
+
+                keyboard = [
+                    [InlineKeyboardButton("🎯 Misiones Activas", callback_data="user_missions")],
+                    [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                ]
+            else:
+                missions_text = f"✅ *Misiones Completadas* ({len(completed_missions)})\n\n"
+
+                keyboard = []
+                for mission in completed_missions[-5:]:
+                    missions_text += f"🏆 **{mission.get('title', 'Misión')}**\n"
+                    missions_text += f"   Completada: {mission.get('completed_date', 'Fecha desconocida')}\n"
+                    missions_text += f"   Recompensa: {mission.get('reward_xp', 0)} XP, {mission.get('reward_besitos', 0)} besitos\n\n"
+
+                keyboard.extend([
+                    [InlineKeyboardButton("🎯 Misiones Activas", callback_data="user_missions")],
+                    [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                ])
+
+            await query.edit_message_text(
+                missions_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar misiones completadas: {str(e)}")
+
+    async def handle_missions_refresh(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Actualiza las misiones del usuario"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            await query.answer("🔄 Actualizando misiones...")
+
+            new_missions = await self.mission_service.generate_personalized_missions(user_id)
+
+            if new_missions:
+                refresh_text = (
+                    f"🔄 *Misiones Actualizadas*\n\n"
+                    f"✨ **Nuevas misiones disponibles:** {len(new_missions)}\n\n"
+                    f"Las misiones se han personalizado según tu progreso y nivel actual.\n\n"
+                    f"¡Ve a tus misiones activas para comenzar!"
+                )
+            else:
+                refresh_text = (
+                    f"🔄 *Misiones Actualizadas*\n\n"
+                    f"📋 No hay nuevas misiones disponibles en este momento.\n\n"
+                    f"Completa tus misiones actuales para desbloquear más contenido."
+                )
+
+            keyboard = [
+                [InlineKeyboardButton("🎯 Ver Misiones", callback_data="user_missions")],
+                [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+            ]
+
+            await query.edit_message_text(
+                refresh_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al actualizar misiones: {str(e)}")
+
+    async def handle_game_trivia_quick(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Inicia trivia rápida"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            await query.answer("🧠 Preparando trivia...")
+
+            trivia_question = await self._generate_trivia_question(user_id)
+            if not trivia_question:
+                await self._send_error_message(update, context, "No se pudo generar pregunta de trivia")
+                return
+
+            context.user_data["current_trivia"] = trivia_question
+
+            question_text = (
+                f"🧠 *Trivia Rápida*\n\n"
+                f"**Pregunta:**\n{trivia_question['question']}\n\n"
+                f"💡 **Pista disponible** (cuesta 10 besitos)\n"
+                f"🏆 **Recompensa:** {trivia_question['reward_xp']} XP, {trivia_question['reward_besitos']} besitos"
+            )
+
+            keyboard = []
+            for i, option in enumerate(trivia_question["options"]):
+                keyboard.append([InlineKeyboardButton(f"{chr(65+i)}. {option}", callback_data=f"trivia_answer_{i}")])
+
+            keyboard.extend([
+                [InlineKeyboardButton("💡 Pedir Pista", callback_data=f"trivia_hint_{trivia_question['id']}")],
+                [InlineKeyboardButton("🔙 Salir", callback_data="user_games")],
+            ])
+
+            await query.edit_message_text(
+                question_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al iniciar trivia: {str(e)}")
+
+    async def handle_game_number_guess(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Inicia juego de adivinar número"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            await query.answer("🔢 Preparando juego...")
+
+            import random
+            target_number = random.randint(1, 100)
+
+            context.user_data["number_game"] = {
+                "target": target_number,
+                "attempts": 0,
+                "max_attempts": 7,
+                "min_range": 1,
+                "max_range": 100,
+            }
+
+            game_text = (
+                f"🔢 *Adivina el Número*\n\n"
+                f"He pensado en un número entre **1 y 100**.\n\n"
+                f"🎯 **Tu misión:** Adivinarlo en máximo 7 intentos\n"
+                f"🏆 **Recompensa:** 150 XP + 75 besitos\n"
+                f"💡 **Bonus:** Menos intentos = más recompensa\n\n"
+                f"**Intentos restantes:** 7\n"
+                f"**Rango actual:** 1 - 100\n\n"
+                f"Escribe tu número o usa los botones:"
+            )
+
+            keyboard = [
+                [
+                    InlineKeyboardButton("🔢 1-25", callback_data="number_guess_1_25"),
+                    InlineKeyboardButton("🔢 26-50", callback_data="number_guess_26_50"),
+                ],
+                [
+                    InlineKeyboardButton("🔢 51-75", callback_data="number_guess_51_75"),
+                    InlineKeyboardButton("🔢 76-100", callback_data="number_guess_76_100"),
+                ],
+                [InlineKeyboardButton("🔙 Salir", callback_data="user_games")],
+            ]
+
+            await query.edit_message_text(
+                game_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al iniciar juego: {str(e)}")
+
+    async def handle_game_math(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Inicia desafío matemático"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        try:
+            await query.answer("➕ Preparando desafío...")
+
+            math_problem = await self._generate_math_problem(user_id)
+
+            context.user_data["math_game"] = math_problem
+
+            problem_text = (
+                f"➕ *Desafío Matemático*\n\n"
+                f"**Problema:**\n{math_problem['problem']}\n\n"
+                f"⏱️ **Tiempo límite:** 60 segundos\n"
+                f"🏆 **Recompensa:** {math_problem['reward_xp']} XP, {math_problem['reward_besitos']} besitos\n\n"
+                f"Selecciona tu respuesta:"
+            )
+
+            keyboard = []
+            for i, option in enumerate(math_problem["options"]):
+                keyboard.append([InlineKeyboardButton(f"{option}", callback_data=f"math_answer_{i}")])
+
+            keyboard.append([InlineKeyboardButton("🔙 Salir", callback_data="user_games")])
+
+            await query.edit_message_text(
+                problem_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al iniciar desafío matemático: {str(e)}")
+
+    async def _generate_trivia_question(self, user_id: int) -> dict:
+        """Genera pregunta de trivia personalizada"""
+        try:
+            await self.user_service.get_user_by_telegram_id(user_id)
+
+            questions_bank = [
+                {
+                    "id": 1,
+                    "question": "¿Cuál es la clave principal de la comunicación efectiva?",
+                    "options": ["Hablar mucho", "Escuchar activamente", "Ser gracioso", "Hablar rápido"],
+                    "correct": 1,
+                    "hint": "La comunicación es bidireccional",
+                    "reward_xp": 100,
+                    "reward_besitos": 50,
+                },
+                {
+                    "id": 2,
+                    "question": "¿Qué porcentaje de la comunicación es lenguaje corporal?",
+                    "options": ["25%", "45%", "55%", "75%"],
+                    "correct": 2,
+                    "hint": "Es más de la mitad",
+                    "reward_xp": 120,
+                    "reward_besitos": 60,
+                },
+                {
+                    "id": 3,
+                    "question": "¿Cuál es el primer paso para generar confianza?",
+                    "options": ["Ser vulnerable", "Ser perfecto", "Ser misterioso", "Ser dominante"],
+                    "correct": 0,
+                    "hint": "Requiere coraje y autenticidad",
+                    "reward_xp": 150,
+                    "reward_besitos": 75,
+                },
+            ]
+
+            import random
+            return random.choice(questions_bank)
+
+        except Exception as e:
+            print(f"Error generating trivia question: {e}")
+            return None
+
+    async def _generate_math_problem(self, user_id: int) -> dict:
+        """Genera un problema matemático sencillo"""
+        try:
+            await self.user_service.get_user_by_telegram_id(user_id)
+
+            import random
+            a = random.randint(1, 20)
+            b = random.randint(1, 20)
+            result = a + b
+            options = [result, result + random.randint(1, 4), result - random.randint(1, 4), result + random.randint(5, 10)]
+            random.shuffle(options)
+            correct_index = options.index(result)
+
+            return {
+                "problem": f"{a} + {b} = ?",
+                "options": options,
+                "correct": correct_index,
+                "reward_xp": 100,
+                "reward_besitos": 50,
+            }
+
+        except Exception as e:
+            print(f"Error generating math problem: {e}")
+            return None
+
     # === CALLBACKS DE USUARIO ===
 
     async def handle_user_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2126,28 +2408,57 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             await self._send_error_message(update, context, f"Error al cargar regalo diario: {str(e)}")
 
     async def handle_claim_daily_gift(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Reclamar el regalo diario"""
+        """Procesa la reclamación del regalo diario"""
         query = update.callback_query
         user_id = query.from_user.id
 
         try:
+            await query.answer("🎁 Procesando regalo...")
+
+            # Intentar otorgar el regalo
             success = await self.user_service.give_daily_gift(user_id)
+
             if success:
-                await query.edit_message_text(
-                    "🎁 *Regalo Diario Reclamado!*",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup(
-                        [[InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]]
-                    ),
+                # Obtener información actualizada del usuario
+                user = await self.user_service.get_user_by_telegram_id(user_id)
+                gift_info = await self.user_service.calculate_daily_gift(user_id)
+
+                success_text = (
+                    f"🎉 *¡Regalo Reclamado!*\n\n"
+                    f"💰 **Has recibido:** {gift_info.get('besitos', 0)} besitos\n\n"
+                    f"📊 **Tu estado actual:**\n"
+                    f"• Besitos totales: {user.besitos}\n"
+                    f"• Nivel: {user.level}\n"
+                    f"• Experiencia: {user.experience}\n\n"
+                    f"⏰ **Próximo regalo:** Mañana a las 00:00"
                 )
+
+                keyboard = [
+                    [InlineKeyboardButton("🎮 Ir a Juegos", callback_data="user_games")],
+                    [InlineKeyboardButton("🎯 Ver Misiones", callback_data="user_missions")],
+                    [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                ]
             else:
-                await query.edit_message_text(
-                    "❌ Ya reclamaste tu regalo de hoy.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup(
-                        [[InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")]]
-                    ),
+                success_text = (
+                    f"❌ *Error al Reclamar Regalo*\n\n"
+                    f"No se pudo procesar tu regalo diario.\n"
+                    f"Posibles causas:\n"
+                    f"• Ya lo reclamaste hoy\n"
+                    f"• Error temporal del sistema\n\n"
+                    f"Inténtalo de nuevo más tarde."
                 )
+
+                keyboard = [
+                    [InlineKeyboardButton("🔄 Intentar de Nuevo", callback_data="user_daily_gift")],
+                    [InlineKeyboardButton("🔙 Menú Principal", callback_data="user_main_menu")],
+                ]
+
+            await query.edit_message_text(
+                success_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
         except Exception as e:
             await self._send_error_message(update, context, f"Error al reclamar regalo: {str(e)}")
 

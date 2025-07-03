@@ -348,14 +348,4 @@ Token: `{token}`
             logger.error(f"❌ Error en _handle_vip_token: {e}", exc_info=True)
             await self._send_simple_error(update)
 
-    async def _send_simple_error(self, update: Update) -> None:
-        """Envía mensaje de error simple"""
-        try:
-            if update and update.message:
-                error_message = """🎭 *Error Técnico*
-
-*Lucien se disculpa elegantemente...*
-
-"Mis disculpas, ha ocurrido un inconveniente técnico. Diana no estará complacida..."
-
-Por favor intenta de nuevo con
+    

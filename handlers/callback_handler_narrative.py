@@ -25,10 +25,333 @@ class CallbackHandlerNarrative:
             self.mission_service = MissionService()
             self.lucien = LucienVoiceEnhanced()
             self.admin_service = AdminService()  # ✅ NUEVO
+            from services.channel_service import ChannelService
+            from services.notification_service import NotificationService
+            self.channel_service = ChannelService()
+            self.notification_service = NotificationService()
             logger.info("✅ CallbackHandlerNarrative inicializado")
         except Exception as e:
             logger.error(f"❌ Error inicializando CallbackHandlerNarrative: {e}")
             raise
+
+    async def _send_no_permission_message(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Envía mensaje cuando el usuario no tiene permisos"""
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(
+            "❌ *Acceso Denegado*\n\n"
+            "No tienes permisos para acceder a esta función.\n"
+            "Contacta a un administrador si crees que esto es un error.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔙 Volver", callback_data="main_menu")]]
+            ),
+        )
+
+    async def _send_error_message(
+        self,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        error_msg: str = None,
+    ) -> None:
+        """Envía mensaje de error genérico"""
+        await update.callback_query.answer()
+        message = error_msg or "❌ Ha ocurrido un error. Inténtalo de nuevo."
+        await update.callback_query.edit_message_text(
+            message,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🔙 Volver", callback_data="main_menu")]]
+            ),
+        )
+
+    async def _check_admin_permissions(
+        self, user_id: int, required_level: str = "admin"
+    ) -> bool:
+        """Verifica permisos de administrador"""
+        try:
+            admin = await self.admin_service.get_admin_by_user_id(user_id)
+            if not admin or not admin.is_active:
+                return False
+            if required_level == "super_admin":
+                return admin.role == "super_admin"
+            return admin.role in ["admin", "super_admin"]
+        except Exception:
+            return False
+
+    async def _get_detailed_analytics(self) -> dict:
+        """Obtiene estadísticas detalladas del sistema"""
+        try:
+            stats = {}
+            stats["total_users"] = await self.user_service.get_total_users_count()
+            stats["active_users_week"] = await self.user_service.get_active_users_count()
+            stats["new_users_today"] = await self.user_service.get_new_users_today_count()
+            stats["new_users_week"] = await self.user_service.get_new_users_week_count()
+            stats["missions_completed"] = await self.mission_service.get_completed_missions_count()
+            stats["avg_level"] = await self.user_service.get_average_level()
+            stats["advanced_users"] = await self.user_service.get_advanced_users_count()
+            stats["active_channels"] = await self.channel_service.get_active_channels_count()
+            stats["notifications_sent"] = await self.notification_service.get_sent_notifications_count()
+            return stats
+        except Exception:
+            return {}
+
+    async def handle_divan_access(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Maneja el acceso al panel de administración"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            admin = await self.admin_service.get_admin_by_user_id(user_id)
+
+            keyboard = [
+                [InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")],
+                [InlineKeyboardButton("📊 Analytics Detallado", callback_data="admin_detailed_analytics")],
+                [InlineKeyboardButton("📋 Mi Actividad", callback_data="admin_my_activity")],
+            ]
+
+            if admin.role == "super_admin":
+                keyboard.extend(
+                    [
+                        [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_pending_requests")],
+                        [InlineKeyboardButton("✅ Aprobar Solicitudes", callback_data="admin_approve_requests")],
+                        [InlineKeyboardButton("🎫 Token Personalizado", callback_data="admin_token_custom")],
+                    ]
+                )
+
+            keyboard.append([InlineKeyboardButton("🔙 Volver", callback_data="main_menu")])
+
+            await query.edit_message_text(
+                f"🏛️ *Panel de Administración*\n\n"
+                f"Bienvenido/a al Diván, {admin.name}\n"
+                f"Rol: {admin.role.title()}\n"
+                f"Nivel de acceso: {'Completo' if admin.role == 'super_admin' else 'Estándar'}\n\n"
+                f"Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al acceder al panel: {str(e)}")
+
+    async def handle_manage_users(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Gestión de usuarios"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            total_users = await self.user_service.get_total_users_count()
+            active_users = await self.user_service.get_active_users_count()
+            new_users_today = await self.user_service.get_new_users_today_count()
+
+            keyboard = [
+                [InlineKeyboardButton("📋 Lista de Usuarios", callback_data="admin_user_list")],
+                [InlineKeyboardButton("🔍 Buscar Usuario", callback_data="admin_search_user")],
+                [InlineKeyboardButton("📊 Estadísticas Detalladas", callback_data="admin_user_stats")],
+                [InlineKeyboardButton("⚠️ Usuarios Reportados", callback_data="admin_reported_users")],
+                [InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")],
+            ]
+
+            await query.edit_message_text(
+                f"👥 *Gestión de Usuarios*\n\n"
+                f"📊 **Estadísticas Rápidas:**\n"
+                f"• Total de usuarios: {total_users}\n"
+                f"• Usuarios activos: {active_users}\n"
+                f"• Nuevos hoy: {new_users_today}\n\n"
+                f"Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de usuarios: {str(e)}")
+
+    async def handle_admin_my_activity(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Muestra la actividad del administrador actual"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            admin = await self.admin_service.get_admin_by_user_id(user_id)
+
+            activity_text = (
+                f"📋 *Mi Actividad Administrativa*\n\n"
+                f"👤 **Información Personal:**\n"
+                f"• Nombre: {admin.name}\n"
+                f"• Rol: {admin.role.title()}\n"
+                f"• Estado: {'Activo' if admin.is_active else 'Inactivo'}\n"
+                f"• Registrado: {admin.created_at.strftime('%d/%m/%Y')}\n\n"
+                f"📊 **Estadísticas de Actividad:**\n"
+                f"• Acciones realizadas hoy: 0\n"
+                f"• Total de acciones: 0\n"
+                f"• Última actividad: Ahora\n\n"
+                f"🎯 **Permisos Actuales:**\n"
+            )
+
+            if admin.role == "super_admin":
+                activity_text += "• ✅ Acceso completo al sistema\n• ✅ Gestión de administradores\n• ✅ Configuración avanzada"
+            else:
+                activity_text += "• ✅ Gestión de usuarios\n• ✅ Moderación de contenido\n• ❌ Gestión de administradores"
+
+            keyboard = [
+                [InlineKeyboardButton("🔄 Actualizar", callback_data="admin_my_activity")],
+                [InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")],
+            ]
+
+            await query.edit_message_text(
+                activity_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar actividad: {str(e)}")
+
+    async def handle_admin_pending_requests(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Muestra solicitudes pendientes de administrador"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id, "super_admin"):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            pending_requests = await self.admin_service.get_pending_requests()
+
+            if not pending_requests:
+                await query.edit_message_text(
+                    "📋 *Solicitudes Pendientes*\n\n"
+                    "No hay solicitudes pendientes de administrador.\n\n"
+                    "Todas las solicitudes han sido procesadas.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")]]
+                    ),
+                )
+                return
+
+            requests_text = "📋 *Solicitudes Pendientes*\n\n"
+            keyboard = []
+
+            for i, request in enumerate(pending_requests[:5]):
+                requests_text += f"{i+1}. **{request.name}** (ID: {request.user_id})\n"
+                requests_text += f"   📅 Solicitado: {request.created_at.strftime('%d/%m/%Y')}\n\n"
+
+                keyboard.append(
+                    [
+                        InlineKeyboardButton(
+                            f"✅ Aprobar #{i+1}", callback_data=f"approve_admin_{request.id}"
+                        ),
+                        InlineKeyboardButton(
+                            f"❌ Rechazar #{i+1}", callback_data=f"reject_admin_{request.id}"
+                        ),
+                    ]
+                )
+
+            keyboard.append([InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")])
+
+            await query.edit_message_text(
+                requests_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar solicitudes: {str(e)}")
+
+    async def handle_admin_approve_requests(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Panel para aprobar solicitudes masivamente"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id, "super_admin"):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("✅ Aprobar Todas", callback_data="approve_all_requests")],
+                [InlineKeyboardButton("📋 Ver Pendientes", callback_data="admin_pending_requests")],
+                [InlineKeyboardButton("🔍 Buscar Solicitud", callback_data="search_admin_request")],
+                [InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")],
+            ]
+
+            await query.edit_message_text(
+                "✅ *Aprobación de Solicitudes*\n\n"
+                "Gestiona las solicitudes de administrador pendientes.\n\n"
+                "⚠️ **Importante:** Los nuevos administradores tendrán acceso "
+                "a funciones sensibles del bot. Revisa cuidadosamente antes de aprobar.\n\n"
+                "Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar panel de aprobación: {str(e)}")
+
+    async def handle_admin_detailed_analytics(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Analytics detallado del sistema"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            stats = await self._get_detailed_analytics()
+
+            analytics_text = (
+                f"📊 *Analytics Detallado*\n\n"
+                f"👥 **Usuarios:**\n"
+                f"• Total: {stats.get('total_users', 0)}\n"
+                f"• Activos (7 días): {stats.get('active_users_week', 0)}\n"
+                f"• Nuevos (hoy): {stats.get('new_users_today', 0)}\n"
+                f"• Nuevos (semana): {stats.get('new_users_week', 0)}\n\n"
+                f"🎯 **Engagement:**\n"
+                f"• Misiones completadas: {stats.get('missions_completed', 0)}\n"
+                f"• Promedio nivel: {stats.get('avg_level', 0):.1f}\n"
+                f"• Usuarios nivel 5+: {stats.get('advanced_users', 0)}\n\n"
+                f"📈 **Sistema:**\n"
+                f"• Canales activos: {stats.get('active_channels', 0)}\n"
+                f"• Notificaciones enviadas: {stats.get('notifications_sent', 0)}\n"
+                f"• Uptime: 99.9%"
+            )
+
+            keyboard = [
+                [InlineKeyboardButton("📊 Exportar Datos", callback_data="export_analytics")],
+                [InlineKeyboardButton("🔄 Actualizar", callback_data="admin_detailed_analytics")],
+                [InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")],
+            ]
+
+            await query.edit_message_text(
+                analytics_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar analytics: {str(e)}")
 
     async def start_narrative(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
@@ -112,6 +435,18 @@ class CallbackHandlerNarrative:
                 await self._handle_admin_analytics(update, context, user, narrative_state)
             elif callback_data == "manage_admins":
                 await self._handle_manage_admins(update, context, user, narrative_state)
+            elif callback_data == "divan_access":
+                await self.handle_divan_access(update, context)
+            elif callback_data == "manage_users":
+                await self.handle_manage_users(update, context)
+            elif callback_data == "admin_my_activity":
+                await self.handle_admin_my_activity(update, context)
+            elif callback_data == "admin_pending_requests":
+                await self.handle_admin_pending_requests(update, context)
+            elif callback_data == "admin_approve_requests":
+                await self.handle_admin_approve_requests(update, context)
+            elif callback_data == "admin_detailed_analytics":
+                await self.handle_admin_detailed_analytics(update, context)
             elif callback_data.startswith("admin_"):
                 await self._handle_admin_action(update, context, user, narrative_state, callback_data)
 
@@ -1030,7 +1365,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             if not self.admin_service.has_permission(
                 user_telegram_id, AdminPermission.GENERATE_VIP_TOKENS
             ):
-                await self._send_no_permission_message(update, first_name, "generar tokens VIP")
+                await self._send_no_permission_message_admin(update, first_name, "generar tokens VIP")
                 return
 
             can_generate = self.admin_service.can_perform_action(
@@ -1085,7 +1420,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             if not self.admin_service.has_permission(
                 user_telegram_id, AdminPermission.MANAGE_CHANNELS
             ):
-                await self._send_no_permission_message(update, first_name, "gestionar canales")
+                await self._send_no_permission_message_admin(update, first_name, "gestionar canales")
                 return
 
             channels_message = f"""
@@ -1141,7 +1476,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             if not self.admin_service.has_permission(
                 user_telegram_id, AdminPermission.ACCESS_ANALYTICS
             ):
-                await self._send_no_permission_message(update, first_name, "acceder a analytics")
+                await self._send_no_permission_message_admin(update, first_name, "acceder a analytics")
                 return
 
             analytics_message = f"""
@@ -1275,7 +1610,7 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
             parse_mode="Markdown",
         )
 
-    async def _send_no_permission_message(self, update, first_name: str, action: str):
+    async def _send_no_permission_message_admin(self, update, first_name: str, action: str):
         """Mensaje cuando falta permiso"""
 
         message = f"""

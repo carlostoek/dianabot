@@ -1,500 +1,323 @@
+
 from typing import Dict, Any, Optional, List
-from models.narrative_state import (
-    UserNarrativeState,
-    NarrativeLevel,
-    UserArchetype,
-    EmotionalResponse,
-)
-from models.user import User
+from enum import Enum
 from datetime import datetime, timedelta
 import random
+import logging
 
+logger = logging.getLogger(__name__)
 
-class LucienVoice:
-    """Sistema centralizado para la voz y personalidad de Lucien"""
+class UserArchetype(Enum):
+    EXPLORER = "explorer"      # Busca cada detalle
+    DIRECT = "direct"          # Va al grano
+    ROMANTIC = "romantic"      # Respuestas poéticas
+    ANALYTICAL = "analytical"  # Busca comprensión intelectual
+    PERSISTENT = "persistent"  # No se rinde fácilmente
+    PATIENT = "patient"        # Toma tiempo para procesar
+    UNDEFINED = "undefined"    # Aún no determinado
+
+class InteractionPattern(Enum):
+    IMMEDIATE = "immediate"           # Respuesta inmediata
+    THOUGHTFUL = "thoughtful"         # Toma tiempo para responder
+    RETURNING_QUICK = "returning_quick"  # Regresa rápido
+    RETURNING_SLOW = "returning_slow"   # Regresa después de días
+    FIRST_TIME = "first_time"         # Primera interacción
+
+class LucienVoiceEnhanced:
+    """Sistema de narrativa inmersiva con personalidad sarcástica y elegante"""
 
     def __init__(self):
         self.EMOJIS = {
-            "lucien": "🎩",
+            "lucien": "🍿",
             "diana": "🌸",
             "elegant": "✨",
-            "sarcastic": "😏",
+            "sarcastic": "😝",
             "surprised": "🤔",
             "proud": "👑",
-            "mysterious": "🗝️",
+            "mysterious": "🔑",
             "warning": "⚠️",
             "success": "✅",
             "intimate": "💫",
             "exclusive": "🔮",
         }
 
-    # ===== MENSAJES DE BIENVENIDA Y NAVEGACIÓN =====
+    # === NIVEL 1 - ESCENA 1: BIENVENIDA DE DIANA ===
 
-    def welcome_message(self, user: User, narrative_state: UserNarrativeState) -> str:
-        """Mensaje de bienvenida personalizado según el progreso narrativo"""
-
-        if narrative_state.current_level == NarrativeLevel.NEWCOMER:
-            return f"""
-{self.EMOJIS['lucien']} **Bienvenido, {user.first_name}**
-
-Ah, un rostro nuevo. Permíteme presentarme con la elegancia que la situación merece: **Lucien**, mayordomo digital y guardián de los secretos que Diana no cuenta... *todavía*.
-
-{self.EMOJIS['mysterious']} Diana me ha encargado evaluar a quienes llegan hasta aquí. No todos comprenden que algunas puertas solo se abren desde adentro.
-
-**¿Estás listo para comenzar tu viaje hacia ella?**
-
-*[Con una sonrisa enigmática]*
-Por cierto, Diana ya sabe que estás aquí. Está... observando.
-            """.strip()
-
-        elif narrative_state.current_level in [
-            NarrativeLevel.LEVEL_1_KINKY,
-            NarrativeLevel.LEVEL_2_KINKY_DEEP,
-        ]:
-            return f"""
-{self.EMOJIS['lucien']} **Ah, {user.first_name} regresa**
-
-*[Ajustándose los guantes con aire de satisfacción]*
-
-Diana mencionó que podrías volver. Hay algo en tu persistencia que encuentra... intrigante.
-
-{self._get_archetype_recognition(narrative_state.primary_archetype)}
-
-**Tu progreso hasta ahora:** {self._format_narrative_progress(narrative_state)}
-
-¿Listo para continuar donde lo dejamos?
-            """.strip()
-
-        elif narrative_state.has_divan_access:
-            return f"""
-{self.EMOJIS['lucien']} **Bienvenido de vuelta al Diván, {user.first_name}**
-
-*[Con respeto genuino teñido de ironía]*
-
-Mira quién ha llegado al círculo íntimo. Diana está {self._get_diana_mood(narrative_state)} y ha estado esperando tu regreso.
-
-{self.EMOJIS['intimate']} **Tu nivel de comprensión:** {narrative_state.diana_trust_level}/100
-{self.EMOJIS['exclusive']} **Secretos compartidos:** {len(narrative_state.special_recognitions)}
-
-*[Susurrando conspiradoramente]*
-Entre tú y yo, creo que eres uno de los pocos que realmente la *entiende*.
-            """.strip()
-
-        return self._generic_welcome(user)
-
-    def main_menu_message(self, user: User, narrative_state: UserNarrativeState) -> str:
-        """Mensaje del menú principal con voz de Lucien"""
-
+    def get_diana_level1_scene1_welcome(self, first_name: str, interaction_pattern: InteractionPattern, archetype: UserArchetype = UserArchetype.UNDEFINED) -> str:
+        """Escena 1 - Bienvenida de Diana adaptada según comportamiento del usuario"""
+        
+        # Mensaje base de Diana
         base_message = f"""
-{self.EMOJIS['lucien']} **Panel de Actividades - {user.first_name}**
+{self.EMOJIS['diana']} *[Voz susurrante, como quien comparte un secreto]*
 
-*[Consultando su elegante reloj de bolsillo]*
+Bienvenido a Los Kinkys, {first_name}.
 
-Diana está {self._get_diana_current_state(narrative_state)} y me ha encargado que te ofrezca las siguientes... oportunidades.
+Has cruzado una línea que muchos ven... pero pocos realmente atraviesan.
 
-{self._get_personalized_menu_intro(narrative_state)}
-        """.strip()
+Puedo sentir tu curiosidad desde aquí. Es... intrigante.  
+No todos llegan con esa misma hambre en los ojos."""
 
-        return base_message
+        # Adaptación según patrón de interacción
+        if interaction_pattern == InteractionPattern.IMMEDIATE:
+            behavioral_note = f"""
+*[Notando tu llegada inmediata]*
 
-    # ===== MENSAJES DE MISIONES =====
+Veo que no perdiste tiempo en llegar hasta mí. Hay algo... urgente en tu energía que me resulta fascinante."""
 
-    def missions_intro(
-        self,
-        user: User,
-        active_missions_count: int,
-        narrative_state: UserNarrativeState,
-    ) -> str:
-        """Introducción a las misiones con contexto narrativo"""
+        elif interaction_pattern == InteractionPattern.THOUGHTFUL:
+            behavioral_note = f"""
+*[Observando tu aproximación cuidadosa]*
 
-        if active_missions_count == 0:
-            return f"""
-{self.EMOJIS['lucien']} **Misiones de Proximidad**
+Te tomaste tu tiempo para llegar aquí. Hay sabiduría en esa pausa... como si supieras que algunos encuentros requieren preparación mental."""
 
-*[Con aire ligeramente aburrido]*
+        elif interaction_pattern == InteractionPattern.RETURNING_QUICK:
+            behavioral_note = f"""
+*[Con sorpresa genuina]*
 
-Ah, qué sorpresa. No tienes misiones activas. Diana debe estar... reconsiderando su nivel de interés en ti.
+Oh... regresaste tan pronto. Hay algo en esa persistencia inmediata que me dice que algo en ti reconoce algo en mí."""
 
-{self._get_mission_encouragement_by_archetype(narrative_state.primary_archetype)}
+        elif interaction_pattern == InteractionPattern.RETURNING_SLOW:
+            behavioral_note = f"""
+*[Con una sonrisa conocedora]*
 
-*[Mirándote con evaluación divertida]*
-Pero no te preocupes. Diana siempre da segundas oportunidades... a quienes demuestran que las merecen.
-            """.strip()
+Volviste... después de procesar, después de reflexionar. Me pregunto qué conclusiones sacaste en el tiempo que estuviste lejos."""
+
+        else:  # FIRST_TIME
+            behavioral_note = f"""
+*[Evaluando con intensidad]*
+
+Este lugar responde a quienes saben que algunas puertas solo se abren desde adentro."""
+
+        # Continuación del mensaje
+        conclusion = f"""
+Y yo... bueno, yo solo me revelo ante quienes comprenden que lo más valioso nunca se entrega fácilmente.
+
+*[Pausa, como si estuviera evaluando al usuario]*
+
+Algo me dice que tú podrías ser diferente.  
+Pero eso... eso está por verse.
+
+{self.EMOJIS['lucien']} *[Lucien aparece con elegancia]*
+
+"*Oh, {first_name}... otro alma perdida que cree que puede entender a Diana. Qué... predecible.*"
+
+*[Con sarcasmo elegante]*
+
+"*Pero bueno, Diana insiste en darle una oportunidad a cada... esperanzado.*"
+"""
+
+        return f"{base_message}\n\n{behavioral_note}\n\n{conclusion}".strip()
+
+    def get_lucien_level1_scene2_intro(self, first_name: str, user_archetype: UserArchetype = UserArchetype.UNDEFINED) -> str:
+        """Escena 2 - Lucien presenta el primer desafío"""
+        
+        base_message = f"""
+{self.EMOJIS['lucien']} *[Con aire de superioridad elegante]*
+
+Ah, otro visitante de Diana... {first_name}.  
+Permíteme presentarme: Lucien, guardián de los secretos que ella no cuenta... todavía.
+
+*[Observando con aire analítico]*
+
+Veo que Diana ya plantó esa semilla de curiosidad en ti. Lo noto en cómo llegaste hasta aquí.  
+Pero la curiosidad sin acción es solo... voyeurismo pasivo."""
+
+        # Adaptación según arquetipo (si ya se detectó)
+        if user_archetype == UserArchetype.EXPLORER:
+            archetype_note = f"""
+*[Con interés genuino]*
+
+Noto que examinas cada detalle... Interesante. Diana aprecia a quienes ven más allá de lo obvio."""
+
+        elif user_archetype == UserArchetype.DIRECT:
+            archetype_note = f"""
+*[Con aprobación reluctante]*
+
+Sin rodeos, directo al grano. Diana encuentra refrescante esa honestidad sin filtros."""
+
+        elif user_archetype == UserArchetype.ROMANTIC:
+            archetype_note = f"""
+*[Con una sonrisa barely perceptible]*
+
+Hay una poesía en cómo te aproximas a esto. Diana tiene debilidad por las almas... artísticas."""
 
         else:
-            return f"""
-{self.EMOJIS['lucien']} **Tus Misiones Actuales**
+            archetype_note = f"""
+*[Con evaluación continua]*
 
-*[Con aprobación apenas disimulada]*
+Aún estoy... catalogándote. Diana observa. Siempre observa."""
 
-Diana te ha asignado **{active_missions_count}** misiones. Cada una es una oportunidad de demostrar que comprendes... sus expectativas.
+        conclusion = f"""
+Y lo que más le fascina no es la obediencia ciega, sino la *intención* detrás de cada gesto.
 
-{self._get_mission_context_by_level(narrative_state.current_level)}
+*[Con desafío sutil]*
 
-*[Con humor seco]*
-Recuerda: Diana observa no solo *si* completas las misiones, sino *cómo* las completas.
-            """.strip()
+**Tu primera prueba es simple:** Reacciona al último mensaje del canal.  
+Pero hazlo porque realmente quieres entender, no porque se te ordena.
 
-    def mission_completed_celebration(
-        self, mission_title: str, rewards: Dict, narrative_state: UserNarrativeState
-    ) -> str:
-        """Celebración de misión completada"""
+*[Con aire conspiratorio]*
 
-        base_celebration = f"""
-{self.EMOJIS['lucien']} **Misión Completada con Elegancia**
+Diana sabrá la diferencia. Siempre sabe."""
 
-*[Con satisfacción visible]*
+        return f"{base_message}\n\n{archetype_note}\n\n{conclusion}".strip()
 
-**"{mission_title}"** - Completada con el estilo que Diana esperaba.
+    def get_diana_reaction_response(self, reaction_time: str, first_name: str) -> Dict[str, str]:
+        """Respuestas de Diana según el tiempo de reacción del usuario"""
+        
+        if reaction_time == "immediate":
+            return {
+                "diana_message": f"""
+{self.EMOJIS['diana']} *[Con una sonrisa apenas perceptible]*
 
-{self._get_completion_style_comment(narrative_state)}
+{first_name}... reaccionaste sin dudar.
 
-**Recompensas recibidas:**
-💋 **{rewards.get('besitos', 0)} Besitos** - Tokens de aprecio de Diana
-⚡ **{rewards.get('experience', 0)} Experiencia** - Crecimiento personal
-        """.strip()
+*[Con aprobación sutil]*
 
-        # Añadir comentario especial de Diana si el nivel es alto
-        if narrative_state.diana_interest_level > 70:
-            base_celebration += f"""
+Hay algo hermoso en esa espontaneidad. No todos tienen el coraje de actuar cuando sienten que algo es correcto.
 
-{self.EMOJIS['diana']} *Diana susurra desde las sombras:*
-"*{self._get_diana_completion_whisper(narrative_state)}*"
-            """.strip()
+*[Acercándose ligeramente]*
 
-        return base_celebration
+Impulsivo... pero no imprudente. Hay una diferencia que pocos entienden.  
+Me gusta eso de ti.""",
+                
+                "lucien_comment": f"""
+{self.EMOJIS['lucien']} *[Con sorpresa fingida]*
 
-    # ===== MENSAJES DE JUEGOS =====
+"*Bueno, bueno... parece que {first_name} no es completamente... inútil.*"
 
-    def games_intro(self, user: User, narrative_state: UserNarrativeState) -> str:
-        """Introducción a los juegos como entretenimiento que Diana observa"""
+*[Con eficiencia profesional]*
 
-        return f"""
-{self.EMOJIS['lucien']} **Entretenimientos para Diana**
+"*Tu Mochila del Viajero está lista. Diana eligió algo específico para alguien como tú: alguien que actúa when it feels right.*"
+""",
+                "reward_type": "immediate_action_reward"
+            }
+        
+        elif reaction_time == "thoughtful":
+            return {
+                "diana_message": f"""
+{self.EMOJIS['diana']} *[Con mirada pensativa]*
 
-*[Con sonrisa enigmática]*
+{first_name}... te tomaste tu tiempo.
 
-Diana encuentra... educativo observar cómo las personas enfrentan desafíos. Cada juego es una ventana a tu personalidad que ella estudia con fascinación.
+*[Con apreciación profunda]*
 
-{self._get_game_context_by_archetype(narrative_state.primary_archetype)}
+Observaste, evaluaste, consideraste. Hay sabiduría en esa paciencia que encuentro... seductora.
 
-*[Ajustándose la corbata]*
-¿Prefieres demostrar tu intelecto, tu intuición, o tu persistencia? Diana está observando...
-        """.strip()
+*[Con intensidad creciente]*
 
-    def game_result_commentary(
-        self,
-        game_type: str,
-        score: int,
-        performance: str,
-        narrative_state: UserNarrativeState,
-    ) -> str:
-        """Comentario de Lucien sobre los resultados del juego"""
+Me fascina cómo algunos saben que lo genuino no debe apresurarse.  
+Tu manera de aproximarte dice más de ti que cualquier reacción impulsiva.""",
+                
+                "lucien_comment": f"""
+{self.EMOJIS['lucien']} *[Con aprobación reluctante]*
 
-        base_commentary = f"""
-{self.EMOJIS['lucien']} **Análisis del Rendimiento**
+"*Hmm... {first_name} comprende que las mejores decisiones no se toman a la ligera. Qué... raro.*"
 
-*[Tomando notas mentales]*
+*[Con aire místico]*
 
-{self._get_performance_analysis(game_type, score, performance)}
+"*Tu Mochila del Viajero contiene algo especial, seleccionado para alguien que sabe esperar el momento correcto.*"
+""",
+                "reward_type": "thoughtful_action_reward"
+            }
+        
+        else:  # no_reaction
+            return {
+                "diana_message": f"""
+{self.EMOJIS['diana']} *[Con decepción sutil pero comprensiva]*
 
-{self._get_diana_observation_comment(score, narrative_state)}
-        """.strip()
+{first_name}... decidiste no reaccionar.
 
-        return base_commentary
+*[Con aire reflexivo]*
 
-    # ===== MENSAJES DE SUBASTAS =====
+Interesante. A veces la acción más reveladora es... la inacción.  
+Quizás necesitas más tiempo para decidir si realmente quieres este viaje.
 
-    def auction_intro(self, user: User, narrative_state: UserNarrativeState) -> str:
-        """Introducción a las subastas como oportunidades de impresionar"""
+*[Con paciencia enigmática]*
 
-        if not narrative_state.has_divan_access:
-            return f"""
-{self.EMOJIS['lucien']} **Subastas de Proximidad**
+Estaré aquí cuando estés listo.""",
+                
+                "lucien_comment": f"""
+{self.EMOJIS['lucien']} *[Con sarcasmo palpable]*
 
-*[Con aire de exclusividad]*
+"*Ah, qué sorpresa... otro que se queda paralizado ante el primer desafío.*"
 
-Las subastas son donde Diana observa quién está verdaderamente comprometido con acercarse a ella. No se trata solo de besitos, se trata de... dedicación.
+*[Con desdén elegante]*
 
-{self._get_auction_eligibility_message(narrative_state)}
+"*Diana es paciente, yo... menos. Pero bueno, siempre puedes intentar de nuevo when you grow a spine.*"
+""",
+                "reward_type": "no_action_consequence"
+            }
 
-*[Con una sonrisa mordaz]*
-Diana nota quién participa y quién solo observa desde la distancia.
-            """.strip()
+    # === MÉTODOS DE ANÁLISIS DE COMPORTAMIENTO ===
+
+    def analyze_interaction_pattern(self, user_data: Dict) -> InteractionPattern:
+        """Analiza el patrón de interacción del usuario"""
+        
+        # Esta lógica se basaría en datos reales del usuario
+        # Por ahora simulamos con lógica básica
+        
+        last_activity = user_data.get('last_activity')
+        created_today = user_data.get('created_today', True)
+        previous_sessions = user_data.get('session_count', 0)
+        
+        if created_today and previous_sessions == 0:
+            return InteractionPattern.FIRST_TIME
+        elif previous_sessions > 0:
+            # Lógica para determinar si regresa rápido o lento
+            # basada en tiempo desde última actividad
+            return InteractionPattern.RETURNING_QUICK  # Simplificado
         else:
-            return f"""
-{self.EMOJIS['lucien']} **Subastas VIP del Diván**
+            return InteractionPattern.IMMEDIATE
 
-*[Con respeto genuino]*
+    def detect_user_archetype(self, interaction_history: List[Dict]) -> UserArchetype:
+        """Detecta el arquetipo del usuario basado en su historial"""
+        
+        # Análisis simplificado - en implementación real sería más sofisticado
+        if not interaction_history:
+            return UserArchetype.UNDEFINED
+            
+        # Aquí iría lógica de ML o análisis de patrones
+        # Por ahora retornamos aleatorio para testing
+        return UserArchetype.EXPLORER
 
-Bienvenido a las subastas exclusivas. Aquí Diana ofrece... intimidades que no comparte con cualquiera.
+    # === MÉTODOS AUXILIARES ===
 
-**Tu nivel de acceso:** {self._get_vip_auction_level(narrative_state)}
-
-*[Susurrando confidencialmente]*
-Estos no son simples premios. Son... invitaciones a conocerla más profundamente.
-            """.strip()
-
-    # ===== MENSAJES DE ERROR Y SISTEMA =====
-
-    def error_message(self, error_type: str, user: User) -> str:
-        """Manejo elegante de errores con personalidad de Lucien"""
-
-        error_responses = {
-            "generic": f"""
-{self.EMOJIS['lucien']} **Un Pequeño Inconveniente**
-
-*[Suspirando con dramatismo elegante]*
-
-Ah, la tecnología. Incluso en el mundo digital de Diana, ocasionalmente las cosas se complican de maneras inesperadas.
-
-*[Ajustándose los guantes con aire profesional]*
-
-Permíteme un momento para resolver esto con la gracia que la situación merece. Diana detesta los inconvenientes técnicos tanto como yo.
-
-**¿Podrías intentar de nuevo, {user.first_name}?**
-            """.strip(),
-            "permission": f"""
-{self.EMOJIS['lucien']} **Acceso Restringido**
-
-*[Con aire de disculpa elegante]*
-
-Me temo que esta función requiere un nivel de proximidad a Diana que aún no has alcanzado, {user.first_name}.
-
-*[Con sonrisa comprensiva]*
-
-Pero no te desanimes. Diana valora la paciencia y la dedicación por encima de la prisa.
-            """.strip(),
-            "rate_limit": f"""
-{self.EMOJIS['lucien']} **Paciencia, {user.first_name}**
-
-*[Con humor seco]*
-
-La impaciencia raramente impresiona a Diana. Permíteme sugerir un momento de contemplación antes de continuar.
-
-*[Consultando su reloj elegante]*
-
-Los mejores placeres se saborean con... moderación.
-            """.strip(),
+    def get_reward_content(self, reward_type: str, user_archetype: UserArchetype) -> Dict[str, str]:
+        """Genera contenido de recompensa personalizado"""
+        
+        rewards = {
+            "immediate_action_reward": {
+                "title": "🎒 Mochila del Viajero Impulsivo",
+                "description": "Para quienes actúan con el corazón",
+                "content": "Primera pista del mapa + Acceso a chat especial",
+                "rarity": "Común pero personalizado"
+            },
+            "thoughtful_action_reward": {
+                "title": "🎒 Mochila del Viajero Reflexivo", 
+                "description": "Para quienes piensan antes de actuar",
+                "content": "Primera pista del mapa + Acceso a análisis profundo",
+                "rarity": "Común pero personalizado"
+            },
+            "no_action_consequence": {
+                "title": "⏳ Oportunidad Perdida",
+                "description": "Las dudas tienen consecuencias",
+                "content": "Chance de redemption en 24 horas",
+                "rarity": "Lesson learned"
+            }
         }
+        
+        return rewards.get(reward_type, rewards["no_action_consequence"])
 
-        return error_responses.get(error_type, error_responses["generic"])
+    # === MENSAJES DE ERROR CON PERSONALIDAD ===
 
-    def maintenance_message(self) -> str:
-        """Mensaje de mantenimiento con estilo"""
-
-        return f"""
-{self.EMOJIS['lucien']} **Mantenimiento del Santuario**
-
-*[Con aire de disculpa elegante]*
-
-Diana ha solicitado algunas... mejoras en nuestro espacio digital. Como buen mayordomo, debo asegurarme de que todo esté perfecto para su regreso.
-
-{self.EMOJIS['elegant']} **Tiempo estimado:** 15-30 minutos
-
-*[Con una reverencia]*
-
-Agradezco tu paciencia mientras preparamos una experiencia aún más... extraordinaria.
-        """.strip()
-
-    # ===== MÉTODOS AUXILIARES PARA PERSONALIZACIÓN =====
-
-    def _get_archetype_recognition(self, archetype: Optional[UserArchetype]) -> str:
-        """Reconocimiento del arquetipo del usuario"""
-
-        if not archetype:
-            return "Diana aún está... estudiándote."
-
-        archetype_comments = {
-            UserArchetype.EXPLORER: "*[Con apreciación]*\nDiana ha notado tu atención al detalle. Encuentra esa curiosidad meticulosa... refrescante.",
-            UserArchetype.DIRECT: "*[Con respeto]*\nTu honestidad directa ha capturado la atención de Diana. Aprecia a quienes no se pierden en rodeos innecesarios.",
-            UserArchetype.ROMANTIC: "*[Con sonrisa conocedora]*\nDiana se siente intrigada por tu naturaleza romántica. Hay poesía en cómo te aproximas a ella.",
-            UserArchetype.ANALYTICAL: "*[Con aprobación intelectual]*\nTu mente analítica fascina a Diana. Aprecia a quienes buscan comprensión profunda.",
-            UserArchetype.PERSISTENT: "*[Con admiración]*\nTu persistencia ha impresionado a Diana. Pocos mantienen esa dedicación constante.",
-            UserArchetype.PATIENT: "*[Con respeto profundo]*\nDiana valora enormemente tu paciencia. Comprende que las mejores cosas no deben apresurarse.",
-        }
-
-        return archetype_comments.get(
-            archetype, "Diana te observa con creciente interés."
-        )
-
-    def _format_narrative_progress(self, narrative_state: UserNarrativeState) -> str:
-        """Formatea el progreso narrativo del usuario"""
-
-        level_descriptions = {
-            NarrativeLevel.LEVEL_1_KINKY: "Explorando Los Kinkys",
-            NarrativeLevel.LEVEL_2_KINKY_DEEP: "Profundizando en Los Kinkys",
-            NarrativeLevel.LEVEL_3_KINKY_FINAL: "Culminación de Los Kinkys",
-            NarrativeLevel.LEVEL_4_DIVAN_ENTRY: "Entrada al Diván",
-            NarrativeLevel.LEVEL_5_DIVAN_DEEP: "Intimidad del Diván",
-            NarrativeLevel.LEVEL_6_DIVAN_SUPREME: "Máxima Proximidad",
-        }
-
-        return level_descriptions.get(
-            narrative_state.current_level, "Comenzando la aventura"
-        )
-
-    def _get_diana_mood(self, narrative_state: UserNarrativeState) -> str:
-        """Estado de ánimo actual de Diana hacia el usuario"""
-
-        trust_level = narrative_state.diana_trust_level
-
-        if trust_level >= 90:
-            return "en un estado de confianza excepcional"
-        elif trust_level >= 70:
-            return "intrigada y receptiva"
-        elif trust_level >= 50:
-            return "observando con interés creciente"
-        elif trust_level >= 30:
-            return "evaluando tu potencial"
-        else:
-            return "manteniendo su distancia habitual"
-
-    def _get_diana_current_state(self, narrative_state: UserNarrativeState) -> str:
-        """Estado actual de Diana para el menú principal"""
-
-        states = [
-            "contemplando sus próximos movimientos",
-            "observando desde las sombras",
-            "reflexionando sobre conexiones auténticas",
-            "evaluando a quienes la buscan",
-            "preparando nuevos misterios",
+    def get_error_message(self, context: str = "") -> str:
+        """Mensaje de error con el tono sarcástico de Lucien"""
+        
+        error_messages = [
+            f"{self.EMOJIS['lucien']} *[Con exasperación elegante]*\n\n\"*Oh, qué sorpresa... algo se rompió. Como si no fuera suficientemente difícil mantener todo funcionando without your help.*\"\n\n*[Con aire profesional forzado]*\n\n\"*Por favor, intenta con /start de nuevo y... maybe this time be more careful.*\"",
+            
+            f"{self.EMOJIS['lucien']} *[Suspirando dramáticamente]*\n\n\"*Error técnico. Qué elegante timing, just when things were getting interesting.*\"\n\n*[Con desdén fingido]*\n\n\"*Diana me pide que te asegure que esto se resolverá. I personally make no such promises.*\"",
         ]
+        
+        return random.choice(error_messages)
 
-        # Seleccionar basado en el nivel de relación
-        if narrative_state.diana_trust_level > 70:
-            return "esperando con anticipación"
-        else:
-            return random.choice(states)
-
-    def _get_personalized_menu_intro(self, narrative_state: UserNarrativeState) -> str:
-        """Introducción personalizada del menú"""
-
-        if narrative_state.primary_archetype == UserArchetype.EXPLORER:
-            return "*[Con una sonrisa conocedora]*\nPuedo ver esa familiar hambre de descubrimiento en tus ojos..."
-        elif narrative_state.primary_archetype == UserArchetype.ROMANTIC:
-            return "*[Con elegancia poética]*\nDiana aprecia el romanticismo auténtico, algo cada vez más raro..."
-        else:
-            return "*[Con aire profesional]*\nPermíteme presentarte las opciones disponibles..."
-
-    def _get_mission_encouragement_by_archetype(
-        self, archetype: Optional[UserArchetype]
-    ) -> str:
-        """Aliento para misiones según arquetipo"""
-
-        if archetype == UserArchetype.PERSISTENT:
-            return "*[Con admiración]*\nTu persistencia no ha pasado desapercibida. Diana respeta esa cualidad."
-        elif archetype == UserArchetype.PATIENT:
-            return "*[Con aprobación]*\nTu paciencia es una virtud que Diana encuentra... magnética."
-        else:
-            return "*[Con aire alentador]*\nDiana valora el esfuerzo auténtico por encima de todo."
-
-    def _get_mission_context_by_level(self, level: NarrativeLevel) -> str:
-        """Contexto de misiones según nivel narrativo"""
-
-        if level in [NarrativeLevel.LEVEL_1_KINKY, NarrativeLevel.LEVEL_2_KINKY_DEEP]:
-            return "*[Con aire educativo]*\nEstas misiones son tu oportunidad de demostrar que mereces conocer más sobre Diana."
-        elif level in [
-            NarrativeLevel.LEVEL_4_DIVAN_ENTRY,
-            NarrativeLevel.LEVEL_5_DIVAN_DEEP,
-        ]:
-            return "*[Con respeto creciente]*\nEn el Diván, las misiones se vuelven más... íntimas. Diana confía en ti."
-        else:
-            return "*[Con profesionalismo]*\nCada misión es una oportunidad de crecimiento."
-
-    def _get_completion_style_comment(self, narrative_state: UserNarrativeState) -> str:
-        """Comentario sobre el estilo de completar misiones"""
-
-        if narrative_state.primary_archetype == UserArchetype.DIRECT:
-            return "*[Con aprobación]*\nTu eficiencia directa impresiona a Diana. Sin rodeos innecesarios."
-        elif narrative_state.primary_archetype == UserArchetype.EXPLORER:
-            return "*[Con satisfacción]*\nTu atención meticulosa a cada detalle ha sido notada por Diana."
-        else:
-            return "*[Con elegancia]*\nCompletada con el estilo que Diana ha llegado a esperar de ti."
-
-    def _get_diana_completion_whisper(self, narrative_state: UserNarrativeState) -> str:
-        """Susurro especial de Diana para misiones completadas"""
-
-        whispers = [
-            "Cada misión completada me revela más sobre quién eres realmente...",
-            "Tu dedicación no pasa desapercibida para mí...",
-            "Hay algo hermoso en cómo te comprometes con cada tarea...",
-            "Me gusta ver cómo creces con cada desafío que superas...",
-        ]
-
-        return random.choice(whispers)
-
-    def _get_game_context_by_archetype(self, archetype: Optional[UserArchetype]) -> str:
-        """Contexto de juegos según arquetipo"""
-
-        if archetype == UserArchetype.ANALYTICAL:
-            return "*[Con interés intelectual]*\nDiana está particularmente interesada en ver cómo tu mente analítica aborda estos desafíos."
-        elif archetype == UserArchetype.EXPLORER:
-            return "*[Con anticipación]*\nTu naturaleza exploradora hará estos juegos especialmente... reveladores para Diana."
-        else:
-            return "*[Con curiosidad]*\nDiana encuentra fascinante observar cómo diferentes personas enfrentan los mismos desafíos."
-
-    def _get_performance_analysis(
-        self, game_type: str, score: int, performance: str
-    ) -> str:
-        """Análisis del rendimiento en juegos"""
-
-        if score >= 90:
-            return "Rendimiento excepcional. Diana ha tomado nota especial de tu habilidad."
-        elif score >= 70:
-            return "Sólido desempeño. Diana aprecia la competencia cuando viene acompañada de elegancia."
-        elif score >= 50:
-            return "Desempeño respetable. Diana valora el esfuerzo auténtico por encima de la perfección."
-        else:
-            return "El valor está en el intento, no en la perfección. Diana comprende esto mejor que nadie."
-
-    def _get_diana_observation_comment(
-        self, score: int, narrative_state: UserNarrativeState
-    ) -> str:
-        """Comentario de observación de Diana sobre el juego"""
-
-        if narrative_state.diana_trust_level > 70:
-            return f"""
-{self.EMOJIS['diana']} *Diana observa desde su espacio privado:*
-"*Me gusta cómo no permites que el resultado defina tu valor...*"
-            """.strip()
-        else:
-            return "*[Observando discretamente]*\nDiana toma nota mental de tu aproximación. Todo es información para ella."
-
-    def _get_auction_eligibility_message(
-        self, narrative_state: UserNarrativeState
-    ) -> str:
-        """Mensaje de elegibilidad para subastas"""
-
-        if narrative_state.current_level == NarrativeLevel.NEWCOMER:
-            return "*[Con aire restrictivo]*\nLas subastas más exclusivas requieren que Diana te conozca mejor primero."
-        else:
-            return "*[Con aprobación]*\nTu progreso te ha ganado acceso a subastas más... significativas."
-
-    def _get_vip_auction_level(self, narrative_state: UserNarrativeState) -> str:
-        """Nivel de acceso VIP a subastas"""
-
-        trust = narrative_state.diana_trust_level
-
-        if trust >= 90:
-            return "Acceso total - Diana confía en ti completamente"
-        elif trust >= 70:
-            return "Acceso elevado - Diana te considera digno de confianza"
-        elif trust >= 50:
-            return "Acceso estándar - Diana está evaluando tu potencial"
-        else:
-            return "Acceso inicial - Diana te observa con interés"
-
-    def _generic_welcome(self, user: User) -> str:
-        """Mensaje de bienvenida genérico"""
-
-        return f"""
-{self.EMOJIS['lucien']} **Bienvenido de vuelta, {user.first_name}**
-
-*[Con elegancia profesional]*
-
-Siempre es un placer asistir a quienes comprenden el valor de la persistencia. Diana aprecia la constancia.
-
-¿En qué puedo asistirte en tu búsqueda de proximidad a ella?
-        """.strip()
-   

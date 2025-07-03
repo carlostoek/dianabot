@@ -30,7 +30,7 @@ class CallbackHandler:
 
                 # NAVEGACIÓN
             elif callback_data == "back_to_menu":
-            a    wait self._handle_back_to_menu(update, context)
+                await self._handle_back_to_menu(update, context)
             elif callback_data == "back_to_start":
                 await self._handle_back_to_menu(update, context)  # Mismo que back_to_menu
             logger.info(f"🔍 Callback recibido: {callback_data} de usuario {user_id}")

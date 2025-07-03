@@ -1195,8 +1195,12 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
             return []
 
     def calculate_xp_for_level(self, target_level: int) -> int:
-        """Calcula XP necesaria para un nivel específico - SÍNCRONO"""
-        return (target_level ** 2) * 100 + target_level * 50
+        """Calcula XP necesaria para un nivel específico"""
+        if target_level <= 1:
+            return 100
+
+        # Fórmula progresiva: cada nivel requiere más XP
+        return (target_level ** 2) * 100
 
     def calculate_daily_gift(self, user_id: int) -> dict:
         """Calcula el regalo diario para un usuario - SINCRÓNICO"""
@@ -1263,44 +1267,52 @@ En todos mis años como su mayordomo, he visto a muy pocos llegar a este nivel d
             print(f"Error checking lore combinations: {e}")
             return None
 
-    async def get_top_users_by_level(self, limit: int = 10):
-        """Obtiene usuarios con mayor nivel"""
+    def get_top_users_by_level(self, limit: int = 10):
+        """Obtiene top usuarios por nivel - SÍNCRONO"""
         try:
-            return (
-                self.db.query(User)
-                .filter(User.is_banned == False)
-                .order_by(desc(User.level), desc(User.experience))
-                .limit(limit)
-                .all()
-            )
+            from config.database import get_db_session
+
+            with get_db_session() as session:
+                from sqlalchemy import select
+                from models.user import User
+
+                result = session.execute(
+                    select(User)
+                    .order_by(User.level.desc(), User.experience.desc())
+                    .limit(limit)
+                )
+                return result.scalars().all()
         except Exception as e:
             print(f"Error getting top users: {e}")
             return []
 
-    async def get_user_ranking_position(self, telegram_id: int) -> int:
-        """Posición del usuario en el ranking por nivel"""
+    def get_user_ranking_position(self, user_id: int) -> int:
+        """Obtiene la posición del usuario en el ranking - SÍNCRONO"""
         try:
-            user = self.get_user_by_telegram_id(telegram_id)
-            if not user:
-                return 0
+            from config.database import get_db_session
 
-            higher = (
-                self.db.query(func.count(User.id))
-                .filter(
-                    or_(
-                        User.level > user.level,
-                        and_(User.level == user.level, User.experience > user.experience),
-                    ),
-                    User.is_banned == False,
+            with get_db_session() as session:
+                from sqlalchemy import select, func
+                from models.user import User
+
+                user_result = session.execute(
+                    select(User).where(User.telegram_id == user_id)
                 )
-                .scalar()
-                or 0
-            )
+                user = user_result.scalar_one_or_none()
 
-            return higher + 1
+                if not user:
+                    return 999
+
+                result = session.execute(
+                    select(func.count(User.id)).where(
+                        (User.level > user.level) |
+                        ((User.level == user.level) & (User.experience > user.experience))
+                    )
+                )
+                return (result.scalar() or 0) + 1
         except Exception as e:
             print(f"Error getting user ranking position: {e}")
-            return 0
+            return 999
 
     async def update_user(self, user):
         """Actualiza datos del usuario en la base de datos"""

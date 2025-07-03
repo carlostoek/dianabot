@@ -18,6 +18,29 @@ class CallbackHandler:
         except Exception as e:
             logger.error(f"❌ Error inicializando CallbackHandler: {e}")
 
+    def _is_admin(self, user_id: int) -> bool:
+        """Verifica si el usuario es administrador"""
+        import os
+
+        # Obtener IDs de admin desde variables de entorno
+        admin_ids_str = os.getenv("ADMIN_IDS", "")
+
+        if not admin_ids_str:
+            logger.warning("⚠️ ADMIN_IDS no configurado en variables de entorno")
+            return False
+
+        try:
+            # Convertir string a lista de enteros
+            admin_ids = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+
+            logger.info(f"🔍 Verificando admin: {user_id} en {admin_ids}")
+
+            return user_id in admin_ids
+
+        except Exception as e:
+            logger.error(f"❌ Error verificando admin: {e}")
+            return False
+
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Maneja todos los callbacks"""
         

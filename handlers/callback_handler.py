@@ -106,6 +106,8 @@ class CallbackHandler:
                 await self._handle_stats(update, context)
             elif callback_data == "my_missions":
                 await self._handle_my_missions(update, context)
+            elif callback_data == "admin_panel":
+                await self._handle_admin_panel(update, context)
             else:
                 await self._handle_unknown_callback(update, context, callback_data)
 
@@ -588,12 +590,54 @@ class CallbackHandler:
 
     # === CALLBACKS DE NAVEGACIÓN ===
 
-    async def _handle_back_to_menu(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Regresa al menú principal"""
+    async def _handle_back_to_menu(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Regresa al menú principal - CON DETECCIÓN DE ADMIN"""
 
         first_name = update.effective_user.first_name or "Usuario"
+        user_id = update.effective_user.id
 
-        message = f"""
+        # Verificar si es admin
+        is_admin = self._is_admin(user_id)
+
+        if is_admin:
+            # MENÚ DE ADMINISTRADOR
+            message = f"""
+👑 **Panel de Administrador**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana aparece con aire autoritario]*
+
+"*{first_name}... mi administrador de confianza.*"
+
+*[Con sonrisa cómplice]*
+
+"*¿Qué necesitas gestionar hoy?*"
+
+🔧 **CONTROLES DE ADMIN DISPONIBLES**
+            """.strip()
+
+            keyboard = [
+                # Fila 1: Funciones de usuario normal
+                [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
+                [InlineKeyboardButton("🎯 Misiones", callback_data="missions")],
+
+                # Fila 2: Funciones de admin
+                [InlineKeyboardButton("⚙️ Panel Admin", callback_data="admin_panel")],
+                [InlineKeyboardButton("👥 Gestionar Usuarios", callback_data="manage_users")],
+
+                # Fila 3: Más funciones admin
+                [InlineKeyboardButton("📊 Estadísticas Bot", callback_data="bot_stats")],
+                [InlineKeyboardButton("🎫 Crear Tokens VIP", callback_data="create_vip_tokens")],
+
+                # Fila 4: Configuración
+                [InlineKeyboardButton("📢 Enviar Broadcast", callback_data="send_broadcast")],
+                [InlineKeyboardButton("🔧 Configuración", callback_data="admin_settings")],
+            ]
+
+        else:
+            # MENÚ DE USUARIO NORMAL
+            message = f"""
 🎭 **Menú Principal**
 
 ¡{first_name}, has regresado!
@@ -603,13 +647,14 @@ Diana me comentó que has estado... observándote.
 Tu progreso no ha pasado desapercibido.
 
 ¿Qué deseas hacer hoy?
-        """.strip()
+            """.strip()
 
-        keyboard = [
-            [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
-            [InlineKeyboardButton("🎯 Misiones", callback_data="missions")],
-            [InlineKeyboardButton("🔥 Contenido Premium", callback_data="premium")],
-        ]
+            keyboard = [
+                [InlineKeyboardButton("👤 Mi Perfil", callback_data="profile")],
+                [InlineKeyboardButton("🎯 Misiones", callback_data="missions")],
+                [InlineKeyboardButton("🔥 Contenido Premium", callback_data="premium")],
+            ]
+
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
@@ -999,6 +1044,51 @@ Tu progreso no ha pasado desapercibido.
         except Exception as e:
             logger.error(f"❌ Error en _handle_my_missions: {e}", exc_info=True)
             await self._send_error_message(update)
+
+    async def _handle_admin_panel(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Panel principal de administrador"""
+
+        user_id = update.effective_user.id
+
+        # Verificar permisos
+        if not self._is_admin(user_id):
+            await update.callback_query.answer(
+                "❌ No tienes permisos de administrador", show_alert=True
+            )
+            return
+
+        message = f"""
+⚙️ **Panel de Administrador**
+
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien presenta las herramientas]*
+
+"*Aquí tienes el control total del sistema, como Diana ordenó.*"
+
+📊 **Estadísticas Rápidas:**
+• Usuarios registrados: 42
+• Usuarios VIP: 8
+• Mensajes hoy: 156
+• Tokens activos: 5
+
+🔧 **Herramientas Disponibles:**
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("👥 Ver Todos los Usuarios", callback_data="admin_view_users")],
+            [InlineKeyboardButton("🎫 Gestionar Tokens VIP", callback_data="admin_manage_tokens")],
+            [InlineKeyboardButton("📊 Estadísticas Completas", callback_data="admin_full_stats")],
+            [InlineKeyboardButton("📢 Enviar Mensaje Masivo", callback_data="admin_broadcast")],
+            [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
 
     async def _send_error_message(self, update: Update) -> None:
         """Envía mensaje de error elegante"""

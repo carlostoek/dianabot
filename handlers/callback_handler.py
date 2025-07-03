@@ -37,6 +37,16 @@ class CallbackHandler:
                 await self._handle_missions(update, context)
             elif callback_data == "premium":
                 await self._handle_premium(update, context)
+            elif callback_data == "vip_preview":
+                await self._handle_vip_preview(update, context)
+            elif callback_data == "get_vip":
+                await self._handle_get_vip(update, context)
+            elif callback_data == "testimonials":
+                await self._handle_testimonials(update, context)
+            elif callback_data == "get_vip_urgent":
+                await self._handle_get_vip_urgent(update, context)
+            elif callback_data == "get_vip_now":
+                await self._handle_get_vip_now(update, context)
             elif callback_data.startswith("intro_"):
                 await self._handle_intro_callbacks(update, context, callback_data)
             elif callback_data == "back_to_menu":
@@ -242,22 +252,267 @@ class CallbackHandler:
             await self._send_error_message(update)
 
     async def _handle_get_vip(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Muestra opciones para obtener VIP"""
+        """Proceso principal para obtener acceso VIP"""
 
-        message = (
-            "👑 **Acceso VIP**\n\n"
-            "Esta funcionalidad está en desarrollo."
-        )
+        first_name = update.effective_user.first_name or "Usuario"
+        user_id = update.effective_user.id
+
+        message = f"""
+👑 **Proceso de Acceso VIP**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana se acerca con elegancia suprema]*
+
+"*{first_name}... has tomado una decisión muy... inteligente.*"
+
+*[Con aire exclusivo]*
+
+💎 **Caminos al Diván de Diana:**
+
+🎫 **1. Token de Invitación VIP**
+• Código especial de acceso
+• Entrada inmediata
+• Para invitados seleccionados
+• **¿Tienes un token?**
+
+🎯 **2. Ruta de Mérito**
+• Completar 10 misiones especiales
+• Demostrar dedicación a Diana
+• Progreso actual: 0/10
+• **Tiempo estimado: 3-5 días**
+
+⚡ **3. Acceso Premium**
+• Contribución directa al proyecto
+• Acceso instantáneo
+• Beneficios adicionales exclusivos
+• **Disponible ahora**
+
+🎮 **4. Desafío de Diana**
+• Superar pruebas especiales
+• Solo para los más... audaces
+• Diana evalúa personalmente
+• **¿Te atreves?**
+
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien con aire conspirativo]*
+
+"*Diana me ha pedido mencionar que los lugares en el Diván son... limitados.*"
+        """.strip()
 
         keyboard = [
-            [InlineKeyboardButton("⬅️ Volver al Menú", callback_data="back_to_menu")],
+            [InlineKeyboardButton("🎫 Tengo un Token VIP", callback_data="enter_vip_token")],
+            [InlineKeyboardButton("🎯 Ruta de Mérito", callback_data="merit_path")],
+            [InlineKeyboardButton("⚡ Acceso Premium", callback_data="premium_access")],
+            [InlineKeyboardButton("🎮 Desafío de Diana", callback_data="diana_challenge")],
+            [InlineKeyboardButton("❓ ¿Cuál me recomiendas?", callback_data="vip_recommendation")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="premium")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
             message,
             reply_markup=reply_markup,
-            parse_mode="Markdown",
+            parse_mode="Markdown"
+        )
+
+    async def _handle_vip_preview(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra vista previa del contenido VIP"""
+
+        first_name = update.effective_user.first_name or "Usuario"
+
+        message = f"""
+📸 **Vista Previa VIP**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana aparece en penumbras seductoras]*
+
+"*{first_name}... quieres un pequeño... adelanto.*"
+
+*[Con sonrisa misteriosa]*
+
+🔥 **Contenido Exclusivo del Diván:**
+
+📱 **Fotos Íntimas**
+• Sesiones fotográficas privadas
+• Outfits exclusivos solo para VIPs
+• Behind the scenes
+
+🎥 **Videos Personalizados**
+• Saludos con tu nombre
+• Experiencias inmersivas
+• Contenido interactivo
+
+💬 **Chat Directo**
+• Conversaciones privadas con Diana
+• Respuestas personalizadas
+• Acceso 24/7
+
+🎪 **Subastas Exclusivas**
+• Experiencias únicas
+• Objetos personales
+• Encuentros virtuales
+
+*[Susurrando seductoramente]*
+
+"*Esto es solo... una pequeña muestra de lo que te espera.*"
+
+⚠️ **Vista previa censurada** - El contenido completo solo está disponible para miembros VIP.
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("🔥 ¡Necesito Acceso YA!", callback_data="get_vip_urgent")],
+            [InlineKeyboardButton("👑 Proceso VIP Normal", callback_data="get_vip")],
+            [InlineKeyboardButton("💬 Ver Testimonios", callback_data="testimonials")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="premium")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+
+    async def _handle_testimonials(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra testimonios de usuarios VIP"""
+
+        message = f"""
+💬 **Testimonios VIP del Diván**
+
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien presenta con orgullo]*
+
+"*Permíteme compartir las palabras de quienes ya han experimentado la... magia de Diana.*"
+
+---
+
+👤 **Carlos, miembro VIP desde hace 3 meses:**
+*"Diana cambió completamente mi perspectiva. No es solo contenido, es una experiencia que te transforma. El Diván es... adictivo en el mejor sentido."*
+⭐⭐⭐⭐⭐
+
+👤 **Miguel, Diván Premium:**
+*"Nunca pensé que podría tener acceso tan directo a alguien como Diana. Sus respuestas personalizadas me hacen sentir especial. Vale cada peso invertido."*
+⭐⭐⭐⭐⭐
+
+👤 **Alejandro, VIP Gold:**
+*"Las subastas son increíbles. Gané una videollamada personalizada y fue... indescriptible. Diana sabe exactamente cómo hacer sentir único a cada uno."*
+⭐⭐⭐⭐⭐
+
+👤 **Roberto, miembro del círculo íntimo:**
+*"Al principio era escéptico, pero Diana y su sistema son auténticos. La narrativa, los juegos, todo está perfectamente diseñado. Es arte erótico."*
+⭐⭐⭐⭐⭐
+
+---
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana aparece brevemente]*
+
+"*No me gusta presumir, pero... mis chicos me adoran.*"
+
+*[Con sonrisa pícara]*
+
+"*¿Serás el próximo en escribir un testimonio?*"
+
+📊 **Estadísticas VIP:**
+• 94% de satisfacción
+• 87% renueva su membresía
+• 0 usuarios arrepentidos
+• Tiempo promedio de respuesta: 2.3 horas
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("🔥 ¡Quiero Ser el Siguiente!", callback_data="get_vip_now")],
+            [InlineKeyboardButton("📧 Contactar a un Miembro", callback_data="contact_member")],
+            [InlineKeyboardButton("📊 Ver Más Estadísticas", callback_data="vip_stats")],
+            [InlineKeyboardButton("👑 Proceso de Acceso", callback_data="get_vip")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="premium")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+
+    async def _handle_get_vip_urgent(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Maneja acceso VIP urgente después de vista previa"""
+
+        first_name = update.effective_user.first_name or "Usuario"
+
+        message = f"""
+🔥 **ACCESO VIP URGENTE**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana sonríe con satisfacción]*
+
+"*{first_name}... veo que la vista previa causó el efecto deseado.*"
+
+*[Con aire triunfante]*
+
+"*Me encanta cuando alguien sabe reconocer... la calidad.*"
+
+⚡ **OPCIONES DE ACCESO INMEDIATO:**
+
+🎫 **Token VIP**
+• Si tienes código de invitación
+• Acceso en 30 segundos
+• **DISPONIBLE AHORA**
+
+💳 **Premium Express**
+• Pago directo
+• Activación automática
+• Sin tiempos de espera
+• **RECOMENDADO**
+
+🎯 **Fast-Track de Misiones**
+• Misiones aceleradas
+• 3x velocidad normal
+• Acceso en 24h
+• **PARA DEDICADOS**
+
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien susurra]*
+
+"*Diana está... especialmente receptiva hoy. Es el momento perfecto.*"
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("🎫 Usar Token Ahora", callback_data="enter_vip_token")],
+            [InlineKeyboardButton("💳 Premium Express", callback_data="premium_express")],
+            [InlineKeyboardButton("🎯 Fast-Track", callback_data="fast_track_missions")],
+            [InlineKeyboardButton("💬 Hablar con Diana", callback_data="talk_to_diana")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="vip_preview")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+
+    async def _handle_get_vip_now(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Callback directo desde testimonios"""
+
+        message = f"""
+🚀 **¡PERFECTO TIMING!**
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana aparece emocionada]*
+
+"*¡Me encanta la decisión rápida! Eso me dice que sabes lo que quieres.*"
+
+*[Con aire seductor]*
+
+"*Los testimonios no mienten... y tú serás el próximo en escribir uno.*"
+
+🎯 **Proceso acelerado activado:**
+        """.strip()
+
+        keyboard = [
+            [InlineKeyboardButton("👑 Ver Opciones VIP", callback_data="get_vip")],
+            [InlineKeyboardButton("⚡ Acceso Inmediato", callback_data="premium_express")],
+            [InlineKeyboardButton("🎫 Tengo Token", callback_data="enter_vip_token")],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.callback_query.edit_message_text(
+            message,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
         )
 
     async def _handle_intro_callbacks(self, update: Update, context: ContextTypes.DEFAULT_TYPE, callback_data: str) -> None:

@@ -1,7 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from services.user_service import UserService
-from services.mission_service import MissionService
 from utils.lucien_voice_enhanced import LucienVoiceEnhanced, InteractionPattern, UserArchetype
 import logging
 from typing import Dict, Any
@@ -15,7 +14,6 @@ class CallbackHandlerNarrative:
     def __init__(self):
         try:
             self.user_service = UserService()
-            self.mission_service = MissionService()
             self.lucien = LucienVoiceEnhanced()
             logger.info("✅ CallbackHandlerNarrative inicializado")
         except Exception as e:
@@ -753,25 +751,34 @@ Diana ha estado... comentando sobre ti. Eso es... unusual.
         try:
             first_name = getattr(user, 'first_name', 'Usuario')
 
-            # Obtener misiones activas del usuario o asignar diarias
-            missions = self.mission_service.get_active_missions(user.id)
-            if not missions:
-                missions = self.mission_service.assign_daily_missions(user.id)
+            missions_message = f"""
+{self.lucien.EMOJIS['lucien']} *[Con aire de supervisor reluctante]*
 
-            mission_lines = []
-            for m in missions:
-                mission_lines.append(
-                    f"• {m.title} - {m.description}"
-                )
+"*Oh, {first_name}... quieres ver tus 'misiones'. Qué... ambicioso.*"
 
-            missions_message = (
-                f"{self.lucien.EMOJIS['lucien']} *[Con aire de supervisor reluctante]*\n\n"
-                f"*Oh, {first_name}... quieres ver tus 'misiones'. Qué... ambicioso.*\n\n"
-                "*[Consultando una lista elegante]*\n\n"
-                "🎯 **Misiones Disponibles:**\n" + "\n".join(mission_lines) + "\n\n"
-                f"{self.lucien.EMOJIS['diana']} *[Diana susurra desde las sombras]*\n\n"
-                f"*Cada misión completada me acerca más a ti, {first_name}...*"
-            )
+*[Consultando una lista elegante]*
+
+🎯 **Misiones Disponibles:**
+
+🌅 **Misión Diaria**
+• Interactuar con Diana hoy
+• Recompensa: 10 Besitos 💋
+• Estado: Disponible
+
+🎭 **Conocer a Diana**
+• Explorar todas las introducciones
+• Recompensa: 25 Besitos + Acceso especial
+• Estado: En progreso
+
+💎 **Camino al VIP**
+• Completar 5 misiones principales
+• Recompensa: Token VIP gratuito
+• Estado: 0/5
+
+{self.lucien.EMOJIS['diana']} *[Diana susurra desde las sombras]*
+
+"*Cada misión completada me acerca más a ti, {first_name}...*"
+            """.strip()
 
             keyboard = [
                 [InlineKeyboardButton("✅ Completar Diaria", callback_data="complete_daily")],

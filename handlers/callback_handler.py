@@ -28,13 +28,15 @@ class CallbackHandler:
             callback_data = query.data
             user_id = update.effective_user.id
 
-                # NAVEGACIÓN
-            elif callback_data == "back_to_menu":
-                await self._handle_back_to_menu(update, context)
-            elif callback_data == "back_to_start":
-                await self._handle_back_to_menu(update, context)  # Mismo que back_to_menu
-            logger.info(f"🔍 Callback recibido: {callback_data} de usuario {user_id}")
 
+                    # === NAVIGATION ===
+        elif callback_data == "main_menu":
+            await self.start_handler._show_main_menu(
+                update, context, user, narrative_state
+            )
+        elif callback_data == "back":
+            await self._handle_back(update, context, user, narrative_state)
+        
             # Routing de callbacks
             if callback_data == "profile":
                 await self._handle_profile(update, context)

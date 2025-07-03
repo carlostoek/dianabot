@@ -212,7 +212,7 @@ class AdminService:
     def create_first_admin_direct(
         self,
         telegram_id: int,
-        user_data: Dict[str, Any] = None
+        user_data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Crea el primer super admin sin verificación de permisos"""
 

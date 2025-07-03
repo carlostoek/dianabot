@@ -411,7 +411,7 @@ class CallbackHandlerNarrative:
             await self._send_error_message(update, context, f"Error al cargar gestión de tokens: {str(e)}")
 
     async def handle_admin_users(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Gestión completa de usuarios (desde keyboards.py)"""
+        """Gestión completa de usuarios (redirige a manage_users)"""
         await self.handle_manage_users(update, context)
 
     async def handle_admin_channels(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -424,20 +424,33 @@ class CallbackHandlerNarrative:
             return
 
         try:
+            # Obtener estadísticas de canales
+            active_channels = await self.channel_service.get_active_channels_count() if hasattr(self.channel_service, 'get_active_channels_count') else 0
+            pending_requests = await self.channel_service.get_pending_requests_count() if hasattr(self.channel_service, 'get_pending_requests_count') else 0
+
             keyboard = [
                 [InlineKeyboardButton("📋 Lista de Canales", callback_data="admin_channel_list")],
                 [InlineKeyboardButton("➕ Agregar Canal", callback_data="admin_channel_add")],
+                [InlineKeyboardButton("⏳ Solicitudes Pendientes", callback_data="admin_channel_pending")],
                 [InlineKeyboardButton("⚙️ Configurar Canal", callback_data="admin_channel_config")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_channel_stats")],
-                [InlineKeyboardButton("🔙 Volver", callback_data="admin_main_menu")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
             ]
 
+            channels_text = (
+                f"📺 *Gestión de Canales*\n\n"
+                f"Administra los canales conectados al bot.\n\n"
+                f"📊 **Estado actual:**\n"
+                f"• Canales activos: {active_channels}\n"
+                f"• Solicitudes pendientes: {pending_requests}\n"
+                f"• Total gestionados: {active_channels + pending_requests}\n\n"
+                f"Selecciona una opción:"
+            )
+
             await query.edit_message_text(
-                "📺 *Gestión de Canales*\n\n"
-                "Administra los canales conectados al bot.\n\n"
-                "Selecciona una opción:",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
+                channels_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
         except Exception as e:
@@ -453,24 +466,86 @@ class CallbackHandlerNarrative:
             return
 
         try:
+            # Obtener estadísticas de misiones
+            total_missions = await self.mission_service.get_total_missions_count() if hasattr(self.mission_service, 'get_total_missions_count') else 0
+            active_missions = await self.mission_service.get_active_missions_count() if hasattr(self.mission_service, 'get_active_missions_count') else 0
+            completed_today = await self.mission_service.get_completed_missions_today() if hasattr(self.mission_service, 'get_completed_missions_today') else 0
+
             keyboard = [
                 [InlineKeyboardButton("📋 Misiones Activas", callback_data="admin_missions_active")],
                 [InlineKeyboardButton("➕ Crear Misión", callback_data="admin_mission_create")],
-                [InlineKeyboardButton("⚙️ Configurar Misiones", callback_data="admin_missions_config")],
+                [InlineKeyboardButton("✏️ Editar Misiones", callback_data="admin_missions_edit")],
+                [InlineKeyboardButton("🎯 Asignar Misiones", callback_data="admin_missions_assign")],
+                [InlineKeyboardButton("⚙️ Configurar Sistema", callback_data="admin_missions_config")],
                 [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_missions_stats")],
-                [InlineKeyboardButton("🔙 Volver", callback_data="admin_main_menu")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
             ]
 
+            missions_text = (
+                f"🎯 *Gestión de Misiones*\n\n"
+                f"Administra el sistema de misiones completo.\n\n"
+                f"📊 **Estado actual:**\n"
+                f"• Total de misiones: {total_missions}\n"
+                f"• Misiones activas: {active_missions}\n"
+                f"• Completadas hoy: {completed_today}\n\n"
+                f"Selecciona una opción:"
+            )
+
             await query.edit_message_text(
-                "🎯 *Gestión de Misiones*\n\n"
-                "Administra las misiones del sistema.\n\n"
-                "Selecciona una opción:",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
+                missions_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar gestión de misiones: {str(e)}")
+
+    async def handle_admin_games(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de juegos"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            # Obtener estadísticas de juegos
+            games_played_today = await self.game_service.get_games_played_today() if hasattr(self, 'game_service') and hasattr(self.game_service, 'get_games_played_today') else 0
+            total_games = await self.game_service.get_total_games_count() if hasattr(self, 'game_service') and hasattr(self.game_service, 'get_total_games_count') else 0
+
+            keyboard = [
+                [InlineKeyboardButton("🎮 Juegos Activos", callback_data="admin_games_active")],
+                [InlineKeyboardButton("➕ Añadir Juego", callback_data="admin_game_add")],
+                [InlineKeyboardButton("⚙️ Configurar Juegos", callback_data="admin_games_config")],
+                [InlineKeyboardButton("🏆 Gestionar Ranking", callback_data="admin_games_ranking")],
+                [InlineKeyboardButton("🎯 Ajustar Dificultad", callback_data="admin_games_difficulty")],
+                [InlineKeyboardButton("📊 Estadísticas", callback_data="admin_games_stats")],
+                [InlineKeyboardButton("🔙 Menú Admin", callback_data="admin_main_menu")]
+            ]
+
+            games_text = (
+                f"🎮 *Gestión de Juegos*\n\n"
+                f"Administra todos los juegos del sistema.\n\n"
+                f"📊 **Estado actual:**\n"
+                f"• Partidas jugadas hoy: {games_played_today}\n"
+                f"• Total de partidas: {total_games}\n"
+                f"• Juegos disponibles: Trivia, Números, Matemáticas\n\n"
+                f"Selecciona una opción:"
+            )
+
+            await query.edit_message_text(
+                games_text,
+                parse_mode='Markdown',
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de juegos: {str(e)}")
+
+    async def handle_admin_stats(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Estadísticas generales (redirige a analytics detallado)"""
+        await self.handle_admin_detailed_analytics(update, context)
 
     async def handle_admin_auctions(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Gestión de subastas"""
@@ -744,6 +819,8 @@ class CallbackHandlerNarrative:
                 await self.handle_admin_channels(update, context)
             elif callback_data == "admin_missions":
                 await self.handle_admin_missions(update, context)
+            elif callback_data == "admin_games":
+                await self.handle_admin_games(update, context)
             elif callback_data == "admin_auctions":
                 await self.handle_admin_auctions(update, context)
             elif callback_data == "manage_users":
@@ -756,6 +833,8 @@ class CallbackHandlerNarrative:
                 await self.handle_admin_approve_requests(update, context)
             elif callback_data == "admin_detailed_analytics":
                 await self.handle_admin_detailed_analytics(update, context)
+            elif callback_data == "admin_stats":
+                await self.handle_admin_stats(update, context)
             elif callback_data == "admin_token_custom":
                 await self.handle_admin_token_custom(update, context)
             elif callback_data == "admin_user_list":

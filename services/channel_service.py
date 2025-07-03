@@ -1022,6 +1022,21 @@ Bienvenido al círculo íntimo. Diana está... complacida.
             print(f"Error getting active channels count: {e}")
             return 0
 
+    async def get_pending_requests_count(self) -> int:
+        """Cuenta solicitudes pendientes de canales"""
+        try:
+            from sqlalchemy import func
+
+            result = (
+                self.db.query(func.count(Channel.id))
+                .filter(Channel.is_active == False)
+                .scalar()
+            )
+            return result or 0
+        except Exception as e:
+            print(f"Error getting pending requests count: {e}")
+            return 0
+
     async def _schedule_auto_approval(self, channel_id: int, delay_hours: int = 24):
         """Programa aprobación automática de canal"""
         try:

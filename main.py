@@ -1,16 +1,20 @@
 import logging
 import os
+from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
     MessageHandler,
+    ContextTypes,
     filters,
 )
 from handlers.start_handler import StartHandler
 from handlers.callback_handler_narrative import CallbackHandlerNarrative
 from handlers.command_handlers import CommandHandlers
 from config.database import get_db, init_db
+from services.channel_service import ChannelService
+from services.user_service import UserService
 
 # Configurar logging
 logging.basicConfig(
@@ -18,6 +22,51 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+async def handle_new_channel_member(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Auto-responde cuando un usuario se une a un canal."""
+    channel_service = ChannelService()
+    user_service = UserService()
+
+    if not update.message or not update.message.new_chat_members:
+        return
+
+    new_member = update.message.new_chat_members[0]
+    user_data = {
+        "telegram_id": new_member.id,
+        "username": new_member.username,
+        "first_name": new_member.first_name,
+        "last_name": new_member.last_name,
+    }
+
+    user = user_service.get_or_create_user(user_data)
+    channel_id = update.effective_chat.id
+
+    response = channel_service.handle_join_request(channel_id, user.id, new_member.id)
+    if "auto_message" in response:
+        await context.bot.send_message(chat_id=channel_id, text=response["auto_message"])
+
+
+async def generate_vip_token(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Comando para generar tokens VIP temporales."""
+    channel_service = ChannelService()
+    admin_user_id = update.effective_user.id
+    channel_id = update.effective_chat.id
+
+    token_info = channel_service.generate_vip_access_token(
+        channel_id,
+        admin_user_id,
+        {
+            "expiry_hours": 24,
+            "max_uses": 1,
+            "description": "Token VIP para acceso temporal",
+        },
+    )
+
+    if "token" in token_info:
+        await context.bot.send_message(
+            chat_id=channel_id, text=f"Token VIP generado: {token_info['token']}"
+        )
 
 class DianaBot:
     """Bot principal de Diana - Sistema de Seducción Narrativa"""
@@ -53,6 +102,14 @@ class DianaBot:
         )
         self.application.add_handler(
             CommandHandler("profile", command_handlers.profile_command)
+        )
+        self.application.add_handler(
+            CommandHandler("generate_vip_token", generate_vip_token)
+        )
+        self.application.add_handler(
+            MessageHandler(
+                filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_channel_member
+            )
         )
 
         # Callbacks (botones) - 🔥 AHORA CON NARRATIVA

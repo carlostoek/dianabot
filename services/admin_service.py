@@ -573,4 +573,13 @@ class AdminService:
 
 "*Diana ha sido informada del nombramiento.*"
         """.strip()
+
+    async def get_pending_requests(self):
+        """Obtiene solicitudes pendientes de administrador"""
+        try:
+            # Por ahora retorna lista vacía, implementar según tu lógica de BD
+            return []
+        except Exception as e:
+            print(f"Error getting pending requests: {e}")
+            return []
     

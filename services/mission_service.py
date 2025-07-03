@@ -1125,4 +1125,14 @@ Diana comprende que a veces los planes cambian. Lo importante es la intención d
 
 "{base_message}"
         """.strip()
+
+    async def get_completed_missions_count(self) -> int:
+        """Cuenta misiones completadas totales"""
+        try:
+            # Implementar según tu lógica de misiones
+            # Por ahora retorna 0
+            return 0
+        except Exception as e:
+            print(f"Error getting completed missions count: {e}")
+            return 0
    

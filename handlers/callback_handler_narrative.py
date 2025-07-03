@@ -13,6 +13,8 @@ from utils.decorators import admin_required, super_admin_only, admin_only
 import logging
 from typing import Dict, Any
 from datetime import datetime, timedelta
+import io
+import csv
 
 logger = logging.getLogger(__name__)
 
@@ -353,6 +355,175 @@ class CallbackHandlerNarrative:
         except Exception as e:
             await self._send_error_message(update, context, f"Error al cargar analytics: {str(e)}")
 
+    async def handle_admin_token_custom(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Gestión de tokens personalizados para super admins"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id, "super_admin"):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            keyboard = [
+                [InlineKeyboardButton("🎫 Generar Token", callback_data="generate_custom_token")],
+                [InlineKeyboardButton("📋 Ver Tokens Activos", callback_data="view_active_tokens")],
+                [InlineKeyboardButton("🗑️ Revocar Token", callback_data="revoke_token")],
+                [InlineKeyboardButton("⚙️ Configurar Permisos", callback_data="configure_token_permissions")],
+                [InlineKeyboardButton("🔙 Volver al Diván", callback_data="divan_access")],
+            ]
+
+            await query.edit_message_text(
+                "🎫 *Gestión de Tokens Personalizados*\n\n"
+                "Los tokens personalizados permiten acceso programático al bot "
+                "y funciones especiales para integraciones.\n\n"
+                "⚠️ **Seguridad:** Los tokens otorgan permisos elevados. "
+                "Manéjalos con extrema precaución.\n\n"
+                "Selecciona una opción:",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar gestión de tokens: {str(e)}")
+
+    async def handle_admin_user_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Muestra lista paginada de usuarios"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            page = int(context.user_data.get('user_list_page', 0))
+            users = await self.user_service.get_users_paginated(page, 10)
+
+            if not users:
+                await query.edit_message_text(
+                    "👥 *Lista de Usuarios*\n\n"
+                    "No se encontraron usuarios en esta página.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("🔙 Volver", callback_data="manage_users")]]
+                    ),
+                )
+                return
+
+            user_list_text = f"👥 *Lista de Usuarios* (Página {page + 1})\n\n"
+
+            for i, user in enumerate(users):
+                status = "🟢" if getattr(user, "is_active", True) else "🔴"
+                user_list_text += f"{status} **{getattr(user, 'name', 'User')}** (ID: {getattr(user, 'user_id', user.id)})\n"
+                user_list_text += f"   Nivel: {getattr(user, 'level', 0)} | Arquetipo: {getattr(user, 'archetype', 'N/A')}\n"
+                created_at = getattr(user, 'created_at', datetime.utcnow())
+                user_list_text += f"   Registro: {created_at.strftime('%d/%m/%Y')}\n\n"
+
+            keyboard = []
+            nav_buttons = []
+
+            if page > 0:
+                nav_buttons.append(InlineKeyboardButton("⬅️ Anterior", callback_data="user_list_prev"))
+
+            nav_buttons.append(InlineKeyboardButton("➡️ Siguiente", callback_data="user_list_next"))
+
+            if nav_buttons:
+                keyboard.append(nav_buttons)
+
+            keyboard.extend(
+                [
+                    [InlineKeyboardButton("🔍 Buscar Usuario", callback_data="admin_search_user")],
+                    [InlineKeyboardButton("🔙 Volver", callback_data="manage_users")],
+                ]
+            )
+
+            await query.edit_message_text(
+                user_list_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al cargar lista de usuarios: {str(e)}")
+
+    async def handle_export_analytics(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Exporta analytics en formato CSV"""
+        query = update.callback_query
+        user_id = query.from_user.id
+
+        if not await self._check_admin_permissions(user_id):
+            await self._send_no_permission_message(update, context)
+            return
+
+        try:
+            await query.answer("📊 Generando reporte...")
+
+            stats = await self._get_detailed_analytics()
+
+            output = io.StringIO()
+            writer = csv.writer(output)
+
+            writer.writerow(["Métrica", "Valor", "Fecha"])
+            writer.writerow([
+                "Total Usuarios",
+                stats.get("total_users", 0),
+                datetime.now().strftime("%Y-%m-%d"),
+            ])
+            writer.writerow([
+                "Usuarios Activos",
+                stats.get("active_users_week", 0),
+                datetime.now().strftime("%Y-%m-%d"),
+            ])
+            writer.writerow([
+                "Nuevos Usuarios Hoy",
+                stats.get("new_users_today", 0),
+                datetime.now().strftime("%Y-%m-%d"),
+            ])
+            writer.writerow([
+                "Misiones Completadas",
+                stats.get("missions_completed", 0),
+                datetime.now().strftime("%Y-%m-%d"),
+            ])
+
+            csv_content = output.getvalue()
+            output.close()
+
+            csv_file = io.BytesIO(csv_content.encode("utf-8"))
+            csv_file.name = f"dianabot_analytics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+            await context.bot.send_document(
+                chat_id=query.message.chat_id,
+                document=csv_file,
+                caption="📊 Reporte de Analytics generado exitosamente",
+            )
+
+            await query.edit_message_text(
+                "✅ *Exportación Completada*\n\n"
+                "El reporte de analytics ha sido enviado como archivo CSV.\n\n"
+                "El archivo contiene todas las métricas principales del sistema.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("🔙 Volver a Analytics", callback_data="admin_detailed_analytics")]]
+                ),
+            )
+
+        except Exception as e:
+            await self._send_error_message(update, context, f"Error al exportar analytics: {str(e)}")
+
+    async def handle_user_list_navigation(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Maneja la navegación en la lista de usuarios"""
+        query = update.callback_query
+
+        current_page = int(context.user_data.get('user_list_page', 0))
+
+        if query.data == 'user_list_next':
+            context.user_data['user_list_page'] = current_page + 1
+        elif query.data == 'user_list_prev':
+            context.user_data['user_list_page'] = max(0, current_page - 1)
+
+        await self.handle_admin_user_list(update, context)
+
     async def start_narrative(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -447,6 +618,14 @@ class CallbackHandlerNarrative:
                 await self.handle_admin_approve_requests(update, context)
             elif callback_data == "admin_detailed_analytics":
                 await self.handle_admin_detailed_analytics(update, context)
+            elif callback_data == "admin_token_custom":
+                await self.handle_admin_token_custom(update, context)
+            elif callback_data == "admin_user_list":
+                await self.handle_admin_user_list(update, context)
+            elif callback_data == "export_analytics":
+                await self.handle_export_analytics(update, context)
+            elif callback_data in ["user_list_next", "user_list_prev"]:
+                await self.handle_user_list_navigation(update, context)
             elif callback_data.startswith("admin_"):
                 await self._handle_admin_action(update, context, user, narrative_state, callback_data)
 

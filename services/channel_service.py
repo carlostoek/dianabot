@@ -1008,4 +1008,17 @@ Bienvenido al círculo íntimo. Diana está... complacida.
                 approvable.append(membership)
 
         return approvable
+
+    async def get_active_channels_count(self) -> int:
+        """Cuenta canales activos"""
+        try:
+            result = (
+                self.db.query(func.count(Channel.id))
+                .filter(Channel.status == ChannelStatus.ACTIVE)
+                .scalar()
+            )
+            return result or 0
+        except Exception as e:
+            print(f"Error getting active channels count: {e}")
+            return 0
    

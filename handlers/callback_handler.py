@@ -79,6 +79,10 @@ class CallbackHandler:
                 await self._handle_continue_exploring(update, context)
             elif callback_data == "retry_last_action":
                 await self._handle_retry_last_action(update, context)
+            elif callback_data == "stats":
+                await self._handle_stats(update, context)
+            elif callback_data == "my_missions":
+                await self._handle_my_missions(update, context)
             else:
                 await self._handle_unknown_callback(update, context, callback_data)
 
@@ -781,10 +785,197 @@ Tu progreso no ha pasado desapercibido.
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.callback_query.edit_message_text(
-            message, 
-            reply_markup=reply_markup, 
+            message,
+            reply_markup=reply_markup,
             parse_mode="Markdown"
         )
+
+    async def _handle_stats(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra estadísticas detalladas del usuario"""
+
+        try:
+            first_name = update.effective_user.first_name or "Usuario"
+            user_id = update.effective_user.id
+
+            # Obtener usuario de forma segura
+            try:
+                user_data = {
+                    "telegram_id": user_id,
+                    "username": update.effective_user.username,
+                    "first_name": first_name,
+                    "last_name": update.effective_user.last_name,
+                }
+                user = self.user_service.get_or_create_user(user_data)
+
+                # Obtener estadísticas de forma segura
+                level = getattr(user, "level", 1)
+                besitos = getattr(user, "besitos", 0)
+                experience = getattr(user, "experience", 0)
+                is_vip = getattr(user, "is_vip", False)
+                created_at = getattr(user, "created_at", "Desconocido")
+
+                # Calcular días desde registro
+                if hasattr(user, "created_at") and user.created_at:
+                    from datetime import datetime
+
+                    days_registered = (datetime.utcnow() - user.created_at).days
+                else:
+                    days_registered = 0
+
+            except Exception as e:
+                logger.error(f"Error obteniendo estadísticas: {e}")
+                # Valores por defecto
+                level = 1
+                besitos = 0
+                experience = 0
+                is_vip = False
+                days_registered = 0
+
+            # Calcular progreso al siguiente nivel
+            exp_needed = level * 100
+            exp_progress = (experience % 100) if experience > 0 else 0
+            progress_bar = "█" * (exp_progress // 10) + "░" * (10 - (exp_progress // 10))
+
+            message = f"""
+📊 **Estadísticas Detalladas de {first_name}**
+
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien consulta un elegante dossier]*
+
+"*Veamos tu expediente completo...*"
+
+👤 **Información General:**
+• **Nombre:** {first_name}
+• **ID:** {user_id}
+• **Días registrado:** {days_registered}
+• **Estado:** {'👑 VIP Premium' if is_vip else '🆓 Usuario Gratuito'}
+
+🎯 **Progreso de Gamificación:**
+• **Nivel Actual:** {level}
+• **Experiencia:** {experience} XP
+• **Besitos:** {besitos} 💋
+
+📈 **Progreso al Siguiente Nivel:**
+{progress_bar} {exp_progress}/100 XP
+
+🏆 **Logros Desbloqueados:**
+{'✅ Primer Contacto' if days_registered > 0 else '❌ Primer Contacto'}
+{'✅ Explorador' if level >= 2 else '❌ Explorador (Nivel 2)'}
+{'✅ Dedicado' if besitos >= 50 else '❌ Dedicado (50 Besitos)'}
+{'✅ Miembro VIP' if is_vip else '❌ Miembro VIP'}
+
+🎮 **Actividad:**
+• Misiones completadas: {level - 1}
+• Interacciones totales: {experience // 10}
+• Puntuación Diana: {besitos // 10}/10
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana observa desde las sombras]*
+
+"*{'Impresionante dedicación' if level > 3 else 'Buen progreso'}, {first_name}...*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("🏆 Ver Logros", callback_data="achievements")],
+                [InlineKeyboardButton("📈 Historial", callback_data="user_history")],
+                [InlineKeyboardButton("🎯 Mejorar Stats", callback_data="improve_stats")],
+                [InlineKeyboardButton("⬅️ Volver al Perfil", callback_data="back_to_profile")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                message,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_stats: {e}", exc_info=True)
+            await self._send_error_message(update)
+
+    async def _handle_my_missions(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Muestra misiones específicas del usuario"""
+
+        try:
+            first_name = update.effective_user.first_name or "Usuario"
+            user_id = update.effective_user.id
+
+            # Obtener progreso del usuario
+            try:
+                user_data = {
+                    "telegram_id": user_id,
+                    "username": update.effective_user.username,
+                    "first_name": first_name,
+                    "last_name": update.effective_user.last_name,
+                }
+                user = self.user_service.get_or_create_user(user_data)
+                level = getattr(user, "level", 1)
+                besitos = getattr(user, "besitos", 0)
+
+            except Exception as e:
+                logger.error(f"Error obteniendo usuario para misiones: {e}")
+                level = 1
+                besitos = 0
+
+            # Simular misiones basadas en progreso
+            missions_completed = level - 1
+            daily_completed = besitos >= 10
+
+            message = f"""
+🎯 **Mis Misiones - {first_name}**
+
+{self.lucien.EMOJIS.get('lucien', '🎭')} *[Lucien revisa tu progreso personal]*
+
+"*Veamos qué tareas Diana ha preparado específicamente para ti...*"
+
+📋 **MISIONES ACTIVAS:**
+
+🌅 **Misión Diaria**
+• Descripción: Interactuar con Diana hoy
+• Progreso: {'✅ Completada' if daily_completed else '⏳ Pendiente'}
+• Recompensa: 10 Besitos 💋
+• {'🎁 ¡Reclamar!' if daily_completed else '🔄 En progreso'}
+
+🎭 **Conociendo a Diana**
+• Descripción: Explorar todas las introducciones
+• Progreso: {'✅ Completada' if level >= 2 else '⏳ 2/3 completadas'}
+• Recompensa: 25 Besitos + Acceso especial
+• {'🎁 ¡Completada!' if level >= 2 else '🔄 Continuar'}
+
+💎 **Camino al VIP**
+• Descripción: Completar 5 misiones principales
+• Progreso: {missions_completed}/5
+• Recompensa: Token VIP gratuito
+• {'🎁 ¡Desbloqueada!' if missions_completed >= 5 else f'🔄 {5 - missions_completed} restantes'}
+
+🔥 **Seducir a Diana**
+• Descripción: Alcanzar 100 Besitos
+• Progreso: {besitos}/100 💋
+• Recompensa: Contenido exclusivo
+• {'🎁 ¡Logrado!' if besitos >= 100 else f'🔄 {100 - besitos} besitos restantes'}
+
+📈 **MISIONES COMPLETADAS:** {missions_completed}
+
+{self.lucien.EMOJIS.get('diana', '👑')} *[Diana susurra]*
+
+"*Cada misión completada me acerca más a ti...*"
+            """.strip()
+
+            keyboard = [
+                [InlineKeyboardButton("🎁 Reclamar Recompensas", callback_data="claim_rewards")],
+                [InlineKeyboardButton("🔄 Actualizar Progreso", callback_data="refresh_missions")],
+                [InlineKeyboardButton("💡 Consejos de Misiones", callback_data="mission_tips")],
+                [InlineKeyboardButton("⬅️ Volver al Perfil", callback_data="back_to_profile")],
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            await update.callback_query.edit_message_text(
+                message,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
+            )
+
+        except Exception as e:
+            logger.error(f"❌ Error en _handle_my_missions: {e}", exc_info=True)
+            await self._send_error_message(update)
 
     async def _send_error_message(self, update: Update) -> None:
         """Envía mensaje de error elegante"""

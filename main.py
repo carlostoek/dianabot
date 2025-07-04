@@ -3,13 +3,11 @@ import logging
 import sys
 import os
 
-# Configurar logging básico primero
+# Configurar logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
 
@@ -18,16 +16,15 @@ async def main():
     try:
         logger.info("🚀 Iniciando DianaBot 2.0...")
         
-        # Verificar BOT_TOKEN primero
+        # Verificar BOT_TOKEN
         bot_token = os.getenv("BOT_TOKEN")
         if not bot_token:
-            logger.error("❌ BOT_TOKEN no encontrado en variables de entorno")
-            logger.info("💡 Asegúrate de configurar: export BOT_TOKEN=tu_token_aqui")
+            logger.error("❌ BOT_TOKEN no encontrado")
             return
         
         logger.info("✅ BOT_TOKEN encontrado")
         
-        # Importar después de verificar token
+        # Importar dependencias
         from aiogram import Bot, Dispatcher
         from aiogram.fsm.storage.memory import MemoryStorage
         from aiogram.client.default import DefaultBotProperties
@@ -39,13 +36,11 @@ async def main():
             from config.database import init_db
             db_success = await init_db()
             if not db_success:
-                logger.error("❌ No se pudo inicializar la base de datos")
-                return
+                logger.warning("⚠️ Base de datos no se inicializó correctamente, continuando...")
         except Exception as e:
-            logger.error(f"❌ Error en configuración de base de datos: {e}")
-            return
+            logger.warning(f"⚠️ Error en base de datos: {e}, continuando sin BD...")
         
-        # Crear bot y dispatcher
+        # Crear bot
         logger.info("🤖 Creando bot...")
         bot = Bot(
             token=bot_token,
@@ -53,44 +48,14 @@ async def main():
         )
         dp = Dispatcher(storage=MemoryStorage())
         
-        # Configurar handlers básicos
+        # Configurar handlers
         logger.info("📡 Configurando handlers...")
-        try:
-            from handlers.start_handler import StartHandler
-            
-            # Solo cargar handler básico por ahora
-            start_handler = StartHandler()
-            start_handler.register(dp)
-            
-            logger.info("✅ Handler básico configurado")
-            
-            # Intentar cargar handlers adicionales
-            try:
-                from handlers.user_handlers import UserHandlers
-                from handlers.narrative_handlers import NarrativeHandlers
-                
-                user_handler = UserHandlers()
-                narrative_handler = NarrativeHandlers()
-                
-                user_handler.register(dp)
-                narrative_handler.register(dp)
-                
-                logger.info("✅ Handlers adicionales configurados")
-            except Exception as e:
-                logger.warning(f"⚠️ Algunos handlers no se cargaron: {e}")
-            
-        except Exception as e:
-            logger.error(f"❌ Error configurando handlers: {e}")
-            return
+        from handlers.start_handler import StartHandler
         
-        # Configurar middlewares (opcional)
-        try:
-            from middlewares.auth import AuthMiddleware
-            dp.message.middleware(AuthMiddleware())
-            dp.callback_query.middleware(AuthMiddleware())
-            logger.info("✅ Middlewares configurados")
-        except Exception as e:
-            logger.warning(f"⚠️ Middlewares no se pudieron cargar: {e}")
+        start_handler = StartHandler()
+        start_handler.register(dp)
+        
+        logger.info("✅ Handlers configurados")
         
         # Iniciar bot
         logger.info("🎭 DianaBot 2.0 iniciado correctamente")
@@ -108,11 +73,5 @@ async def main():
         logger.info("🔚 Cerrando DianaBot...")
 
 if __name__ == "__main__":
-    # Verificar Python version
-    if sys.version_info < (3, 8):
-        print("❌ Python 3.8+ requerido")
-        sys.exit(1)
-    
-    # Ejecutar bot
     asyncio.run(main())
     

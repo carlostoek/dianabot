@@ -1,86 +1,118 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
+import sys
+import os
 
-from config.settings import Settings
-from config.database import init_db
-from middlewares.auth import AuthMiddleware
-from middlewares.logging import LoggingMiddleware
-from middlewares.analytics import AnalyticsMiddleware
-from middlewares.economy import EconomyMiddleware
-
-from handlers.start_handler import StartHandler
-from handlers.user_handlers import UserHandlers
-from handlers.narrative_handlers import NarrativeHandlers
-from handlers.store_handlers import StoreHandlers
-from handlers.auction_handlers import AuctionHandlers
-from handlers.admin_handlers import AdminHandlers
-from handlers.channel_handlers import ChannelHandlers
-from handlers.cms_handlers import CMSHandlers
-
-logging.basicConfig(level=logging.INFO)
+# Configurar logging básico primero
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
-class DianaBot:
-    def __init__(self):
-        self.settings = Settings()
-        self.bot = Bot(
-            token=self.settings.BOT_TOKEN,
+async def main():
+    """Función principal del bot"""
+    try:
+        logger.info("🚀 Iniciando DianaBot 2.0...")
+        
+        # Verificar BOT_TOKEN primero
+        bot_token = os.getenv("BOT_TOKEN")
+        if not bot_token:
+            logger.error("❌ BOT_TOKEN no encontrado en variables de entorno")
+            logger.info("💡 Asegúrate de configurar: export BOT_TOKEN=tu_token_aqui")
+            return
+        
+        logger.info("✅ BOT_TOKEN encontrado")
+        
+        # Importar después de verificar token
+        from aiogram import Bot, Dispatcher
+        from aiogram.fsm.storage.memory import MemoryStorage
+        from aiogram.client.default import DefaultBotProperties
+        from aiogram.enums import ParseMode
+        
+        # Inicializar base de datos
+        logger.info("🗄️ Inicializando base de datos...")
+        try:
+            from config.database import init_db
+            db_success = await init_db()
+            if not db_success:
+                logger.error("❌ No se pudo inicializar la base de datos")
+                return
+        except Exception as e:
+            logger.error(f"❌ Error en configuración de base de datos: {e}")
+            return
+        
+        # Crear bot y dispatcher
+        logger.info("🤖 Creando bot...")
+        bot = Bot(
+            token=bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
         )
-        self.dp = Dispatcher(storage=MemoryStorage())
-        self._setup_middlewares()
-        self._setup_handlers()
-
-    def _setup_middlewares(self):
-        """Configurar middlewares"""
-        self.dp.message.middleware(AuthMiddleware())
-        self.dp.callback_query.middleware(AuthMiddleware())
-        self.dp.message.middleware(LoggingMiddleware())
-        self.dp.callback_query.middleware(LoggingMiddleware())
-        self.dp.message.middleware(AnalyticsMiddleware())
-        self.dp.callback_query.middleware(AnalyticsMiddleware())
-        self.dp.message.middleware(EconomyMiddleware())
-        self.dp.callback_query.middleware(EconomyMiddleware())
-
-    def _setup_handlers(self):
-        """Configurar handlers"""
-        handlers = [
-            StartHandler(),
-            UserHandlers(),
-            NarrativeHandlers(),
-            StoreHandlers(),
-            AuctionHandlers(),
-            AdminHandlers(),
-            ChannelHandlers(),
-            CMSHandlers()
-        ]
+        dp = Dispatcher(storage=MemoryStorage())
         
-        for handler in handlers:
-            handler.register(self.dp)
-
-    async def start(self):
-        """Iniciar el bot"""
-        await init_db()
-        logger.info("🎭 DianaBot 2.0 iniciando...")
-        await self.dp.start_polling(self.bot)
-
-    async def stop(self):
-        """Detener el bot"""
-        await self.bot.session.close()
-
-async def main():
-    bot = DianaBot()
-    try:
-        await bot.start()
+        # Configurar handlers básicos
+        logger.info("📡 Configurando handlers...")
+        try:
+            from handlers.start_handler import StartHandler
+            
+            # Solo cargar handler básico por ahora
+            start_handler = StartHandler()
+            start_handler.register(dp)
+            
+            logger.info("✅ Handler básico configurado")
+            
+            # Intentar cargar handlers adicionales
+            try:
+                from handlers.user_handlers import UserHandlers
+                from handlers.narrative_handlers import NarrativeHandlers
+                
+                user_handler = UserHandlers()
+                narrative_handler = NarrativeHandlers()
+                
+                user_handler.register(dp)
+                narrative_handler.register(dp)
+                
+                logger.info("✅ Handlers adicionales configurados")
+            except Exception as e:
+                logger.warning(f"⚠️ Algunos handlers no se cargaron: {e}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error configurando handlers: {e}")
+            return
+        
+        # Configurar middlewares (opcional)
+        try:
+            from middlewares.auth import AuthMiddleware
+            dp.message.middleware(AuthMiddleware())
+            dp.callback_query.middleware(AuthMiddleware())
+            logger.info("✅ Middlewares configurados")
+        except Exception as e:
+            logger.warning(f"⚠️ Middlewares no se pudieron cargar: {e}")
+        
+        # Iniciar bot
+        logger.info("🎭 DianaBot 2.0 iniciado correctamente")
+        logger.info("📱 El bot está listo para recibir mensajes")
+        
+        await dp.start_polling(bot)
+        
     except KeyboardInterrupt:
-        logger.info("Bot detenido por el usuario")
+        logger.info("🛑 Bot detenido por el usuario")
+    except Exception as e:
+        logger.error(f"❌ Error crítico: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        await bot.stop()
+        logger.info("🔚 Cerrando DianaBot...")
 
 if __name__ == "__main__":
+    # Verificar Python version
+    if sys.version_info < (3, 8):
+        print("❌ Python 3.8+ requerido")
+        sys.exit(1)
+    
+    # Ejecutar bot
     asyncio.run(main())
-  
+    

@@ -1,113 +1,55 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+import asyncio
+import logging
+import sys
 import os
 
-# Configuración de base de datos
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///diana.db")
-
-print(f"🔧 Configurando base de datos: {DATABASE_URL}")
-
-# Crear engine
-try:
-    if DATABASE_URL.startswith("sqlite"):
-        engine = create_async_engine(
-            DATABASE_URL,
-            echo=False,
-            pool_pre_ping=True,
-            connect_args={"check_same_thread": False}
-        )
-    elif DATABASE_URL.startswith("postgresql"):
-        # Asegurar que use asyncpg
-        if "+asyncpg" not in DATABASE_URL:
-            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-        
-        engine = create_async_engine(
-            DATABASE_URL,
-            echo=False,
-            pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20
-        )
-    else:
-        # Fallback a SQLite
-        DATABASE_URL = "sqlite+aiosqlite:///diana.db"
-        engine = create_async_engine(
-            DATABASE_URL,
-            echo=False,
-            pool_pre_ping=True,
-            connect_args={"check_same_thread": False}
-        )
-        
-    print(f"✅ Database engine created: {DATABASE_URL}")
-    
-except Exception as e:
-    print(f"❌ Error creating engine: {e}")
-    # Fallback final a SQLite
-    DATABASE_URL = "sqlite+aiosqlite:///diana.db"
-    engine = create_async_engine(
-        DATABASE_URL,
-        echo=False,
-        pool_pre_ping=True,
-        connect_args={"check_same_thread": False}
-    )
-    print(f"✅ Fallback to SQLite: {DATABASE_URL}")
-
-# Crear session maker
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
+logger = logging.getLogger(__name__)
 
-# Base para modelos
-Base = declarative_base()
-
-async def init_db():
-    """Inicializar base de datos"""
+async def main():
+    """Función principal del bot"""
     try:
-        print("📋 Importando modelos...")
+        logger.info("🚀 Iniciando DianaBot 2.0...")
         
-        # Importar modelos uno por uno para mejor debugging
-        try:
-            from database.models import User
-            print("✅ User model imported")
-        except Exception as e:
-            print(f"❌ Error importing User: {e}")
-            
-        try:
-            from database.models import Admin
-            print("✅ Admin model imported")
-        except Exception as e:
-            print(f"❌ Error importing Admin: {e}")
-            
-        try:
-            from database.models import NarrativeState
-            print("✅ NarrativeState model imported")
-        except Exception as e:
-            print(f"❌ Error importing NarrativeState: {e}")
-            
-        # Crear tablas
-        print("🔨 Creando tablas...")
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        # Verificar BOT_TOKEN
+        bot_token = os.getenv("BOT_TOKEN")
+        if not bot_token:
+            logger.error("❌ BOT_TOKEN no encontrado")
+            return
         
-        print("✅ Database initialized successfully")
-        return True
+        logger.info("✅ BOT_TOKEN encontrado")
         
-    except Exception as e:
-        print(f"❌ Error initializing database: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-async def get_db():
-    """Obtener sesión de base de datos"""
-    async with AsyncSessionLocal() as session:
+        # Importar dependencias
+        from aiogram import Bot, Dispatcher
+        from aiogram.fsm.storage.memory import MemoryStorage
+        from aiogram.client.default import DefaultBotProperties
+        from aiogram.enums import ParseMode
+        
+        # Inicializar base de datos
+        logger.info("🗄️ Inicializando base de datos...")
         try:
-            yield session
+            from config.database import init_db
+            db_success = await init_db()
+            if db_success:
+                logger.info("✅ Base de datos lista")
+            else:
+                logger.warning("⚠️ Base de datos con problemas, continuando...")
         except Exception as e:
-            await session.rollback()
-            raise e
-        finally:
-            await session.close()
-            
+            logger.warning(f"⚠️ Error en base de datos: {e}")
+        
+        # Crear bot
+        logger.info("🤖 Creando bot...")
+        bot = Bot(
+            token=bot_token,
+            default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)
+        )
+        dp = Dispatcher(storage=MemoryStorage())
+        
+        # Configurar handlers
+        logger.info("📡 Configurando handlers...")
+        from handlers.start_handler import Start

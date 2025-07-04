@@ -1,98 +1,113 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from config.settings import Settings
 import os
 
-settings = Settings()
+# Configuración de base de datos
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///diana.db")
 
-# Determinar el driver correcto basado en la URL de la base de datos
-database_url = settings.DATABASE_URL
+print(f"🔧 Configurando base de datos: {DATABASE_URL}")
 
-# Si no hay URL específica, usar SQLite por defecto
-if not database_url or database_url == "":
-    database_url = "sqlite+aiosqlite:///diana.db"
-
-# Configurar engine con parámetros apropiados
-if database_url.startswith("sqlite"):
-    engine = create_async_engine(
-        database_url,
-        echo=False,
-        pool_pre_ping=True,
-        connect_args={"check_same_thread": False}
-    )
-elif database_url.startswith("postgresql"):
-    # Asegurar que use asyncpg en lugar de psycopg2
-    if "+asyncpg" not in database_url:
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+# Crear engine
+try:
+    if DATABASE_URL.startswith("sqlite"):
+        engine = create_async_engine(
+            DATABASE_URL,
+            echo=False,
+            pool_pre_ping=True,
+            connect_args={"check_same_thread": False}
+        )
+    elif DATABASE_URL.startswith("postgresql"):
+        # Asegurar que use asyncpg
+        if "+asyncpg" not in DATABASE_URL:
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+        
+        engine = create_async_engine(
+            DATABASE_URL,
+            echo=False,
+            pool_pre_ping=True,
+            pool_size=10,
+            max_overflow=20
+        )
+    else:
+        # Fallback a SQLite
+        DATABASE_URL = "sqlite+aiosqlite:///diana.db"
+        engine = create_async_engine(
+            DATABASE_URL,
+            echo=False,
+            pool_pre_ping=True,
+            connect_args={"check_same_thread": False}
+        )
+        
+    print(f"✅ Database engine created: {DATABASE_URL}")
     
+except Exception as e:
+    print(f"❌ Error creating engine: {e}")
+    # Fallback final a SQLite
+    DATABASE_URL = "sqlite+aiosqlite:///diana.db"
     engine = create_async_engine(
-        database_url,
-        echo=False,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20
-    )
-else:
-    # Fallback a SQLite
-    database_url = "sqlite+aiosqlite:///diana.db"
-    engine = create_async_engine(
-        database_url,
+        DATABASE_URL,
         echo=False,
         pool_pre_ping=True,
         connect_args={"check_same_thread": False}
     )
+    print(f"✅ Fallback to SQLite: {DATABASE_URL}")
 
+# Crear session maker
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False
 )
 
+# Base para modelos
 Base = declarative_base()
 
 async def init_db():
     """Inicializar base de datos"""
     try:
-        from database.models import (
-            User, Admin, NarrativeState, StoreItem, Auction, 
-            AuctionBid, Transaction, Purchase, Badge, UserBadge,
-            ChannelPost, UserReaction, ContentTemplate, StoryScene
-        )
+        print("📋 Importando modelos...")
         
+        # Importar modelos uno por uno para mejor debugging
+        try:
+            from database.models import User
+            print("✅ User model imported")
+        except Exception as e:
+            print(f"❌ Error importing User: {e}")
+            
+        try:
+            from database.models import Admin
+            print("✅ Admin model imported")
+        except Exception as e:
+            print(f"❌ Error importing Admin: {e}")
+            
+        try:
+            from database.models import NarrativeState
+            print("✅ NarrativeState model imported")
+        except Exception as e:
+            print(f"❌ Error importing NarrativeState: {e}")
+            
+        # Crear tablas
+        print("🔨 Creando tablas...")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         
-        print("✅ Base de datos inicializada correctamente")
+        print("✅ Database initialized successfully")
+        return True
         
     except Exception as e:
-        print(f"❌ Error inicializando base de datos: {e}")
-        # En caso de error, intentar con SQLite
-        global engine, AsyncSessionLocal
-        
-        sqlite_url = "sqlite+aiosqlite:///diana.db"
-        engine = create_async_engine(
-            sqlite_url,
-            echo=False,
-            pool_pre_ping=True,
-            connect_args={"check_same_thread": False}
-        )
-        
-        AsyncSessionLocal = async_sessionmaker(
-            engine,
-            class_=AsyncSession,
-            expire_on_commit=False
-        )
-        
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        
-        print("✅ Fallback a SQLite completado")
+        print(f"❌ Error initializing database: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
-async def get_db() -> AsyncSession:
+async def get_db():
     """Obtener sesión de base de datos"""
     async with AsyncSessionLocal() as session:
         try:
             yield session
+        except Exception as e:
+            await session.rollback()
+            raise e
         finally:
             await session.close()
             

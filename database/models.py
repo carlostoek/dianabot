@@ -188,5 +188,3 @@ class ChannelPost(Base):
     reactions_count = Column(JSON, default=dict)
     created_at = Column(DateTime, default=func.now())
 
-class UserReaction(Base):
-    __tablename

@@ -37,6 +37,18 @@ class CMSHandlers:
             self.handle_edit_scene,
             F.data.startswith("edit_scene_")
         )
+        self.router.callback_query.register(
+            self.handle_add_scene,
+            F.data == "cms_add_scene"
+        )
+        self.router.callback_query.register(
+            self.handle_template_management,
+            F.data == "cms_templates"
+        )
+        self.router.callback_query.register(
+            self.handle_archetype_editor,
+            F.data == "cms_archetypes"
+        )
 
     @admin_required
     async def handle_cms_main(self, callback: CallbackQuery, user: dict, admin: dict):
@@ -103,10 +115,23 @@ class CMSHandlers:
   └── Escena 2: Desafío de Observación
   └── Escena 3: Reconocimiento Profundo
 
+🔹 **Nivel 3 - Los Kinkys (Culminación):**
+  └── Escena 1: Diana Revela la Prueba Final
+  └── Escena 2: La Evaluación Mutua
+
 🔹 **Nivel 4 - El Diván (Canal VIP):**
   └── Escena 1: Bienvenida Íntima
   └── Escena 2: Desafío Profundo
   └── Escena 3: Evaluación de Comprensión
+
+🔹 **Nivel 5 - El Diván (Profundización VIP):**
+  └── Escena 1: Diana Reconoce la Evolución
+  └── Escena 2: Diálogos de Vulnerabilidad
+  └── Escena 3: Reconocimiento de Intimidad
+
+🔹 **Nivel 6 - El Diván (Culminación Suprema):**
+  └── Escena 1: Diana Revela el Secreto Final
+  └── Escena 2: La Síntesis Completa
 
 📊 **Métricas de Flujo:**
 • Usuarios que completan Nivel 1: {storyboard_stats.get('level_1_completion', 0)}%
@@ -149,14 +174,18 @@ class CMSHandlers:
 • {{user_besitos}} - Besitos actuales
 • {{user_archetype}} - Arquetipo detectado
 • {{narrative_level}} - Progreso narrativo
+• {{vip_status}} - Estado VIP
+• {{completion_rate}} - % de progreso
 
 **Arquetipos Activos:**
 • Explorador: {content_stats.get('explorer_users', 0)} usuarios
 • Directo: {content_stats.get('direct_users', 0)} usuarios
 • Romántico: {content_stats.get('romantic_users', 0)} usuarios
 • Analítico: {content_stats.get('analytical_users', 0)} usuarios
+• Paciente: {content_stats.get('patient_users', 0)} usuarios
+• Impulsivo: {content_stats.get('impulsive_users', 0)} usuarios
 
 📚 **Plantillas de Mensajes:**
 
 **1. Diana - Personalizada por Arquetipo:**
-      
+        

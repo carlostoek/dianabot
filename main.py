@@ -35,10 +35,12 @@ async def main():
         try:
             from config.database import init_db
             db_success = await init_db()
-            if not db_success:
-                logger.warning("⚠️ Base de datos no se inicializó correctamente, continuando...")
+            if db_success:
+                logger.info("✅ Base de datos lista")
+            else:
+                logger.warning("⚠️ Base de datos con problemas, continuando...")
         except Exception as e:
-            logger.warning(f"⚠️ Error en base de datos: {e}, continuando sin BD...")
+            logger.warning(f"⚠️ Error en base de datos: {e}")
         
         # Crear bot
         logger.info("🤖 Creando bot...")
@@ -50,28 +52,4 @@ async def main():
         
         # Configurar handlers
         logger.info("📡 Configurando handlers...")
-        from handlers.start_handler import StartHandler
-        
-        start_handler = StartHandler()
-        start_handler.register(dp)
-        
-        logger.info("✅ Handlers configurados")
-        
-        # Iniciar bot
-        logger.info("🎭 DianaBot 2.0 iniciado correctamente")
-        logger.info("📱 El bot está listo para recibir mensajes")
-        
-        await dp.start_polling(bot)
-        
-    except KeyboardInterrupt:
-        logger.info("🛑 Bot detenido por el usuario")
-    except Exception as e:
-        logger.error(f"❌ Error crítico: {e}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        logger.info("🔚 Cerrando DianaBot...")
-
-if __name__ == "__main__":
-    asyncio.run(main())
-    
+        from handlers.start_handler import Start
